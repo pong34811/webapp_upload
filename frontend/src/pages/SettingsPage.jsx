@@ -42,7 +42,7 @@ export default function SettingsPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2>จัดการเป้าหมายอัปโหลด</h2>
+        <h2>จัดการตั้งค่าช่องทาง</h2>
         <button onClick={() => { setEditing(null); setShowForm(true) }}>เพิ่ม</button>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
