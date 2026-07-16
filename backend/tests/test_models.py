@@ -32,6 +32,34 @@ class DestinationModelTest(TestCase):
         self.assertFalse(dest.is_active)
 
 
+    def test_oauth_fields_default_blank(self):
+        dest = Destination.objects.create(
+            platform="youtube",
+            name="Ch OAuth",
+            access_token="tok",
+            created_by=self.user,
+            updated_by=self.user,
+        )
+        self.assertEqual(dest.client_id, "")
+        self.assertEqual(dest.client_secret, "")
+        self.assertEqual(dest.refresh_token, "")
+
+    def test_oauth_fields_stored(self):
+        dest = Destination.objects.create(
+            platform="youtube",
+            name="Ch OAuth",
+            access_token="tok",
+            client_id="cid",
+            client_secret="csec",
+            refresh_token="rtok",
+            created_by=self.user,
+            updated_by=self.user,
+        )
+        self.assertEqual(dest.client_id, "cid")
+        self.assertEqual(dest.client_secret, "csec")
+        self.assertEqual(dest.refresh_token, "rtok")
+
+
 class UploadJobModelTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="admin", password="pass1234")
