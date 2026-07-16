@@ -3,7 +3,7 @@ import json
 import threading
 from pathlib import Path
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action, authentication_classes
 from rest_framework.response import Response
@@ -205,5 +205,5 @@ def spa_index(request):
     return HttpResponse(html)
 
 
-def spa_catchall(request, path):
+def spa_catchall(request, path=""):
     return spa_index(request)
