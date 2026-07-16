@@ -6,6 +6,9 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
     name: '',
     access_token: '',
     page_id: '',
+    client_id: '',
+    client_secret: '',
+    refresh_token: '',
   })
 
   useEffect(() => {
@@ -15,6 +18,9 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
         name: destination.name,
         access_token: destination.access_token,
         page_id: destination.page_id || '',
+        client_id: destination.client_id || '',
+        client_secret: destination.client_secret || '',
+        refresh_token: destination.refresh_token || '',
       })
     }
   }, [destination])
@@ -44,6 +50,19 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
         <div style={{ marginBottom: 12 }}>
           <input name="access_token" placeholder="Access Token" value={form.access_token} onChange={handleChange} style={{ width: '100%', padding: 8 }} required />
         </div>
+        {form.platform === 'youtube' && (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <input name="client_id" placeholder="Client ID (optional)" value={form.client_id} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <input name="client_secret" placeholder="Client Secret (optional)" value={form.client_secret} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <input name="refresh_token" placeholder="Refresh Token (optional)" value={form.refresh_token} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
+            </div>
+          </>
+        )}
         {form.platform === 'facebook' && (
           <div style={{ marginBottom: 12 }}>
             <input name="page_id" placeholder="Page ID" value={form.page_id} onChange={handleChange} style={{ width: '100%', padding: 8 }} required />
