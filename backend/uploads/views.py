@@ -1,11 +1,14 @@
 import os
+import json
 import threading
 from pathlib import Path
 from django.conf import settings
+from django.http import JsonResponse
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.decorators import api_view, permission_classes, action, authentication_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from .models import Destination, UploadJob
@@ -15,24 +18,51 @@ from .services.facebook import upload_to_facebook
 from .services.token_refresh import get_valid_access_token
 
 
-@api_view(["POST"])
-@permission_classes([AllowAny])
+@csrf_exempt
 def api_login(request):
-    username = request.data.get("username")
-    password = request.data.get("password")
+    if request.method != "POST":
+        return JsonResponse({"error": "method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        data = request.POST
+    username = data.get("username")
+    password = data.get("password")
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-        return Response({"message": "ok", "username": user.username})
-    return Response({"error": "invalid credentials"}, status=400)
+        return JsonResponse({"message": "ok", "username": user.username})
+    return JsonResponse({"error": "invalid credentials"}, status=400)
 
 
-@api_view(["POST"])
+@csrf_exempt
 def api_logout(request):
-    logout(request)
-    resp = Response({"message": "ok"})
-    resp.delete_cookie("sessionid", path="/")
-    resp.delete_cookie("csrftoken", path="/")
+    if request.method != "POST":
+        return JsonResponse({"error": "method not allowed"}, status=405)
+    request.session.flush()
+    resp = JsonResponse({"message": "ok"})
+    resp.set_cookie(
+        "sessionid",
+        "",
+        max_age=0,
+        expires="Thu, 01 Jan 1970 00:00:00 GMT",
+        path=getattr(settings, "SESSION_COOKIE_PATH", "/"),
+        domain=getattr(settings, "SESSION_COOKIE_DOMAIN", None),
+        secure=getattr(settings, "SESSION_COOKIE_SECURE", False),
+        httponly=getattr(settings, "SESSION_COOKIE_HTTPONLY", True),
+        samesite=getattr(settings, "SESSION_COOKIE_SAMESITE", "Lax"),
+    )
+    resp.set_cookie(
+        "csrftoken",
+        "",
+        max_age=0,
+        expires="Thu, 01 Jan 1970 00:00:00 GMT",
+        path=getattr(settings, "CSRF_COOKIE_PATH", "/"),
+        domain=getattr(settings, "CSRF_COOKIE_DOMAIN", None),
+        secure=getattr(settings, "CSRF_COOKIE_SECURE", False),
+        httponly=False,
+        samesite=getattr(settings, "CSRF_COOKIE_SAMESITE", "Lax"),
+    )
     return resp
 
 

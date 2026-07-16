@@ -18,6 +18,23 @@ class AuthTest(TestCase):
         res = self.client.post("/api/auth/login/", {"username": "admin", "password": "wrong"})
         self.assertEqual(res.status_code, 400)
 
+    def test_logout_clears_cookies(self):
+        self.client.login(username="admin", password="pass1234")
+        res = self.client.post("/api/auth/logout/")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("sessionid", res.cookies)
+        self.assertIn("csrftoken", res.cookies)
+        self.assertEqual(res.cookies["sessionid"]["max-age"], 0)
+        self.assertEqual(res.cookies["csrftoken"]["max-age"], 0)
+
+    def test_login_csrf_exempt(self):
+        res = self.client.post("/api/auth/login/", data='{"username":"admin","password":"pass1234"}', content_type="application/json")
+        self.assertEqual(res.status_code, 200)
+
+    def test_logout_csrf_exempt(self):
+        res = self.client.post("/api/auth/logout/")
+        self.assertEqual(res.status_code, 200)
+
 
 class DestinationTest(TestCase):
     def setUp(self):
