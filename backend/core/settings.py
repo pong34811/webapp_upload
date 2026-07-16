@@ -64,6 +64,10 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+SPA_DIR = BASE_DIR / "uploads" / "static" / "spa"
+
+STATICFILES_DIRS = [SPA_DIR] if SPA_DIR.exists() else []
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOW_ALL_ORIGINS = True
