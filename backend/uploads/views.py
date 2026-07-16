@@ -30,7 +30,10 @@ def api_login(request):
 @api_view(["POST"])
 def api_logout(request):
     logout(request)
-    return Response({"message": "ok"})
+    resp = Response({"message": "ok"})
+    resp.delete_cookie("sessionid", path="/")
+    resp.delete_cookie("csrftoken", path="/")
+    return resp
 
 
 @api_view(["GET"])
