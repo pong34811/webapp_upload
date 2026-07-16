@@ -11,6 +11,7 @@ from .models import Destination, UploadJob
 from .serializers import DestinationSerializer, UploadJobSerializer, UploadCreateSerializer
 from .services.youtube import upload_to_youtube
 from .services.facebook import upload_to_facebook
+from .services.token_refresh import get_valid_access_token
 
 
 @api_view(["POST"])
@@ -121,15 +122,16 @@ def _process_upload(job_id):
     try:
         job = UploadJob.objects.get(id=job_id)
         dest = job.destination
+        access_token = get_valid_access_token(dest)
         if dest.platform == "youtube":
             video_id = upload_to_youtube(
                 job.file_path, job.title, job.description, job.tags,
-                job.privacy, dest.access_token, job.scheduled_time,
+                job.privacy, access_token, job.scheduled_time,
             )
         elif dest.platform == "facebook":
             video_id = upload_to_facebook(
                 job.file_path, job.title, job.description,
-                dest.access_token, dest.page_id, job.scheduled_time,
+                access_token, dest.page_id, job.scheduled_time,
             )
         else:
             raise ValueError(f"unknown platform: {dest.platform}")

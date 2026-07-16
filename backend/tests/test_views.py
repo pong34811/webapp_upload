@@ -1,3 +1,4 @@
+from unittest import mock
 from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
@@ -79,3 +80,23 @@ class UploadJobTest(TestCase):
         self.assertEqual(res.status_code, 200)
         job.refresh_from_db()
         self.assertEqual(job.status, "failed")
+
+    def test_process_upload_uses_refreshed_token(self):
+        self.dest.refresh_token = "rtok"
+        self.dest.client_id = "cid"
+        self.dest.client_secret = "csec"
+        self.dest.save()
+        job = UploadJob.objects.create(
+            destination=self.dest, filename="v.mp4", file_path="/tmp/v.mp4",
+            title="V", created_by=self.user, updated_by=self.user,
+        )
+        with mock.patch("uploads.services.token_refresh.refresh_youtube_access_token", return_value="new_tok") as refresh_mock, \
+             mock.patch("uploads.views.upload_to_youtube", return_value="vid123") as upload_mock:
+            from uploads import views
+            views._process_upload(job.id)
+        # Verify upload_to_youtube was called with "new_tok" (not "tok")
+        args, _ = upload_mock.call_args
+        self.assertEqual(args[5], "new_tok")
+        self.assertTrue(refresh_mock.called)
+        job.refresh_from_db()
+        self.assertEqual(job.status, "success")
