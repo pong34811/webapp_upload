@@ -1,0 +1,47 @@
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: '/api',
+  withCredentials: true,
+  headers: { 'Content-Type': 'application/json' },
+})
+
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 403 || err.response?.status === 401) {
+      window.location.href = '/login'
+    }
+    return Promise.reject(err)
+  }
+)
+
+export const authAPI = {
+  login: (username, password) => api.post('/auth/login/', { username, password }),
+  logout: () => api.post('/auth/logout/'),
+  me: () => api.get('/auth/me/'),
+}
+
+export const destinationAPI = {
+  list: () => api.get('/destinations/'),
+  create: (data) => api.post('/destinations/', data),
+  update: (id, data) => api.put(`/destinations/${id}/`, data),
+  remove: (id) => api.delete(`/destinations/${id}/`),
+}
+
+export const uploadAPI = {
+  create: (formData, onProgress) =>
+    api.post('/uploads/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 30))
+        }
+      },
+    }),
+  list: () => api.get('/uploads/'),
+  get: (id) => api.get(`/uploads/${id}/`),
+  cancel: (id) => api.post(`/uploads/${id}/cancel/`),
+}
+
+export default api
