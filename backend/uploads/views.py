@@ -16,6 +16,9 @@ from .serializers import DestinationSerializer, UploadJobSerializer, UploadCreat
 from .services.youtube import upload_to_youtube
 from .services.facebook import upload_to_facebook
 from .services.token_refresh import get_valid_access_token
+from .services import youtube_oauth
+from django.shortcuts import render
+from .models import YouTubeAppConfig
 
 
 @csrf_exempt
@@ -207,3 +210,49 @@ def spa_index(request):
 
 def spa_catchall(request, path=""):
     return spa_index(request)
+
+
+def oauth_youtube_start(request):
+    import secrets
+    state = secrets.token_urlsafe(16)
+    request.session["oauth_state"] = state
+    auth_url = youtube_oauth.build_auth_url(state)
+    return JsonResponse({"auth_url": auth_url})
+
+
+def _find_or_create_youtube_destination(title, tokens, cfg, user):
+    dest = Destination.objects.filter(platform="youtube").first()
+    if dest is None:
+        dest = Destination(platform="youtube", created_by=user, updated_by=user)
+    dest.name = title
+    dest.access_token = tokens.get("access_token", "")
+    dest.refresh_token = tokens.get("refresh_token", "")
+    dest.client_id = cfg.client_id
+    dest.client_secret = cfg.client_secret
+    dest.page_id = ""
+    dest.is_active = True
+    dest.save()
+    return dest
+
+
+def oauth_youtube_callback(request):
+    state = request.GET.get("state", "")
+    code = request.GET.get("code", "")
+    expected = request.session.get("oauth_state", "")
+    if not state or state != expected:
+        result_payload = {"type": "oauth-error", "message": "state ไม่ถูกต้อง"}
+        return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
+    try:
+        tokens = youtube_oauth.exchange_code_for_tokens(code)
+        title = youtube_oauth.fetch_channel_title(tokens["access_token"])
+        user = request.user if request.user.is_authenticated else None
+        try:
+            cfg = YouTubeAppConfig.get_active()
+        except YouTubeAppConfig.DoesNotExist:
+            cfg = type("Cfg", (), {"client_id": "", "client_secret": ""})()
+        _find_or_create_youtube_destination(title, tokens, cfg, user)
+    except Exception as e:
+        result_payload = {"type": "oauth-error", "message": str(e)}
+        return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
+    result_payload = {"type": "oauth-success"}
+    return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})

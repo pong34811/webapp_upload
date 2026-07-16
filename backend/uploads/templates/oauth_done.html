@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="th">
+<head><meta charset="UTF-8"><title>OAuth Done</title></head>
+<body>
+<script>
+  const result = {{ result_json|safe }};
+  if (window.opener) {
+    window.opener.postMessage(result, window.location.origin);
+  }
+  window.close();
+</script>
+</body>
+</html>
