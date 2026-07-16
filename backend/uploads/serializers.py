@@ -5,7 +5,8 @@ from .models import Destination, UploadJob
 class DestinationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Destination
-        fields = ["id", "platform", "name", "access_token", "page_id", "is_active",
+        fields = ["id", "platform", "name", "access_token", "page_id",
+                  "client_id", "client_secret", "refresh_token", "is_active",
                   "created_by", "updated_by", "created_at", "updated_at"]
         read_only_fields = ["created_by", "updated_by", "created_at", "updated_at"]
 

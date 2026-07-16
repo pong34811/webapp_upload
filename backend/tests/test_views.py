@@ -46,6 +46,20 @@ class DestinationTest(TestCase):
         dest.refresh_from_db()
         self.assertFalse(dest.is_active)
 
+    def test_create_destination_with_oauth_fields(self):
+        res = self.client.post("/api/destinations/", {
+            "platform": "youtube",
+            "name": "Ch A",
+            "access_token": "tok123",
+            "client_id": "cid",
+            "client_secret": "csec",
+            "refresh_token": "rtok",
+        })
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.data["client_id"], "cid")
+        self.assertEqual(res.data["client_secret"], "csec")
+        self.assertEqual(res.data["refresh_token"], "rtok")
+
 
 class UploadJobTest(TestCase):
     def setUp(self):
