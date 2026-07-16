@@ -57,3 +57,12 @@ Build script จะรัน `npm install && npm run build` ใน `frontend/` �
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = ["https://your-host"]
 ```
+
+## ตั้งค่า YouTube OAuth
+
+1. ใน Google Cloud Console สร้าง OAuth 2.0 Client ID (ประเภท Web application)
+2. เพิ่ม Authorized redirect URI: `http://<host>/api/oauth/youtube/callback/`
+   (ตอนพัฒนาใช้ `http://localhost:8000/api/oauth/youtube/callback/`)
+3. ใน Django Admin (`/admin`) เพิ่ม YouTubeAppConfig ด้วย client_id, client_secret, redirect_uri จากข้อ 2
+4. ที่หน้า "จัดการตั้งค่าช่องทาง" กด "เชื่อมต่อ YouTube" และล็อกอินบัญชี Google
+5. ช่องจะถูกเพิ่มพร้อม token ที่ต่ออายุอัตโนมัติ
