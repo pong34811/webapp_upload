@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
+import { oauthAPI } from '../api/client'
 
 export default function DestinationForm({ destination, onSubmit, onClose }) {
   const [form, setForm] = useState({
@@ -29,6 +31,21 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type === 'oauth-success') {
+        toast.success('เชื่อมต่อช่อง YouTube สำเร็จ กรุณาตรวจสอบข้อมูลแล้วบันทึก')
+      }
+    }
+    window.addEventListener('message', onMsg)
+    return () => window.removeEventListener('message', onMsg)
+  }, [])
+
+  const handleConnectGoogle = async () => {
+    const res = await oauthAPI.start()
+    window.open(res.data.auth_url, '_blank', 'width=600,height=700')
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     onSubmit(form)
@@ -48,10 +65,13 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
           <input name="name" placeholder="ชื่อ (เช่น ช่อง A)" value={form.name} onChange={handleChange} style={{ width: '100%', padding: 8 }} required />
         </div>
         <div style={{ marginBottom: 12 }}>
-          <input name="access_token" placeholder="Access Token" value={form.access_token} onChange={handleChange} style={{ width: '100%', padding: 8 }} required />
+          <input name="access_token" placeholder="Access Token" value={form.access_token} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
         </div>
         {form.platform === 'youtube' && (
           <>
+            <div style={{ marginBottom: 12 }}>
+              <button type="button" onClick={handleConnectGoogle}>เชื่อมต่อ Google</button>
+            </div>
             <div style={{ marginBottom: 12 }}>
               <input name="client_id" placeholder="Client ID (optional)" value={form.client_id} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
             </div>
