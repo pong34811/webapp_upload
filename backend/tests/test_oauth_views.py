@@ -2,12 +2,15 @@
 from unittest import mock
 from django.test import TestCase
 from django.contrib.auth.models import User
-from uploads.models import Destination
+from uploads.models import Destination, YouTubeAppConfig
 
 
 class OAuthViewsTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="admin", password="pass1234")
+        YouTubeAppConfig.objects.create(
+            client_id="cid", client_secret="csec", redirect_uri="http://localhost/callback"
+        )
 
     def test_start_returns_auth_url_and_state(self):
         from uploads import views

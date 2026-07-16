@@ -1,5 +1,6 @@
 import os
 import json
+import secrets
 import threading
 from pathlib import Path
 from django.conf import settings
@@ -213,7 +214,6 @@ def spa_catchall(request, path=""):
 
 
 def oauth_youtube_start(request):
-    import secrets
     state = secrets.token_urlsafe(16)
     request.session["oauth_state"] = state
     auth_url = youtube_oauth.build_auth_url(state)
@@ -246,11 +246,11 @@ def oauth_youtube_callback(request):
         tokens = youtube_oauth.exchange_code_for_tokens(code)
         title = youtube_oauth.fetch_channel_title(tokens["access_token"])
         user = request.user if request.user.is_authenticated else None
-        try:
-            cfg = YouTubeAppConfig.get_active()
-        except YouTubeAppConfig.DoesNotExist:
-            cfg = type("Cfg", (), {"client_id": "", "client_secret": ""})()
+        cfg = YouTubeAppConfig.get_active()
         _find_or_create_youtube_destination(title, tokens, cfg, user)
+    except YouTubeAppConfig.DoesNotExist:
+        result_payload = {"type": "oauth-error", "message": "ยังไม่ได้ตั้งค่า YouTubeAppConfig ใน Admin"}
+        return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
     except Exception as e:
         result_payload = {"type": "oauth-error", "message": str(e)}
         return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
