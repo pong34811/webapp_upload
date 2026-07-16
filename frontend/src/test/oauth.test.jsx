@@ -48,7 +48,7 @@ describe('SettingsPage OAuth connect', () => {
     renderPage()
     await user.click(screen.getByRole('button', { name: 'เชื่อมต่อ YouTube' }))
     await waitFor(() => expect(oauthAPI.start).toHaveBeenCalled())
-    window.dispatchEvent(new MessageEvent('message', { data: { type: 'oauth-success' } }))
+    window.dispatchEvent(new MessageEvent('message', { data: { type: 'oauth-success' }, origin: window.location.origin }))
     await waitFor(() => {
       expect(screen.getByText('เชื่อมต่อ YouTube สำเร็จ')).toBeInTheDocument()
     })

@@ -18,6 +18,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const onMsg = (e) => {
+      if (e.origin !== window.location.origin) return
       if (e.data?.type === 'oauth-success') {
         toast.success('เชื่อมต่อ YouTube สำเร็จ')
         load()

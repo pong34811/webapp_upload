@@ -14,23 +14,23 @@ vi.mock('../api/client', async () => {
 describe('DestinationForm OAuth button', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('shows connect button for youtube and submits form', async () => {
+  it('shows connect button for youtube and closes form on oauth success', async () => {
     oauthAPI.start.mockResolvedValue({ data: { auth_url: 'https://x' } })
     vi.spyOn(window, 'open').mockImplementation(() => ({}))
     const onSubmit = vi.fn()
+    const onClose = vi.fn()
     const user = userEvent.setup()
     render(
       <MemoryRouter>
-        <DestinationForm destination={null} onSubmit={onSubmit} onClose={() => {}} />
+        <DestinationForm destination={null} onSubmit={onSubmit} onClose={onClose} />
       </MemoryRouter>
     )
     await user.click(screen.getByRole('button', { name: 'เชื่อมต่อ Google' }))
     await waitFor(() => expect(oauthAPI.start).toHaveBeenCalled())
     window.dispatchEvent(new MessageEvent('message', {
       data: { type: 'oauth-success' },
+      origin: window.location.origin,
     }))
-    await user.type(screen.getByPlaceholderText('ชื่อ (เช่น ช่อง A)'), 'ช่องใหม่')
-    await user.click(screen.getByRole('button', { name: 'บันทึก' }))
-    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 })

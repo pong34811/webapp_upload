@@ -33,8 +33,10 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
 
   useEffect(() => {
     const onMsg = (e) => {
+      if (e.origin !== window.location.origin) return
       if (e.data?.type === 'oauth-success') {
         toast.success('เชื่อมต่อช่อง YouTube สำเร็จ กรุณาตรวจสอบข้อมูลแล้วบันทึก')
+        onClose()
       }
     }
     window.addEventListener('message', onMsg)
