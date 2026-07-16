@@ -1,5 +1,6 @@
 import os
 import threading
+from pathlib import Path
 from django.conf import settings
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
@@ -155,3 +156,21 @@ def _process_upload(job_id):
                 os.remove(job.file_path)
         except Exception:
             pass
+
+
+def _read_index():
+    index_path = Path(settings.SPA_DIR) / "index.html"
+    if not index_path.exists():
+        return None
+    return index_path.read_text(encoding="utf-8")
+
+
+def spa_index(request):
+    html = _read_index()
+    if html is None:
+        return HttpResponse("SPA not built. Run the build step.", status=404)
+    return HttpResponse(html)
+
+
+def spa_catchall(request, path):
+    return spa_index(request)
