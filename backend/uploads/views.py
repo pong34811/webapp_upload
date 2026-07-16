@@ -106,6 +106,16 @@ class UploadViewSet(viewsets.ModelViewSet):
 
         return Response(UploadJobSerializer(job).data, status=201)
 
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        job = self.get_object()
+        if job.status in ("pending", "uploading"):
+            job.status = "failed"
+            job.error_message = "cancelled"
+            job.save()
+            return Response({"message": "cancelled"})
+        return Response({"error": "cannot cancel"}, status=400)
+
 
 def _process_upload(job_id):
     try:
