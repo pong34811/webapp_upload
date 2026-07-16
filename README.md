@@ -40,9 +40,20 @@ npm run dev
 3. ไปหน้า **อัปโหลด** เลือกปลายทาง, เลือกไฟล์, กรอกข้อมูล, กดอัปโหลด
 4. ดูสถานะในหน้า **ประวัติ**
 
-## Production (build เข้า Django)
-```bash
-cd frontend
-npm run build
-# ก๊อป dist/ เข้า backend/uploads/static แล้วให้ Django เสิร์ฟ
+## Production / Local-run (serve frontend จาก Django)
+ใช้เมื่อต้องการรันแบบ single machine โดยไม่ต้องใช้ Vite dev server:
+
+1. รัน build script จาก `backend/`:
+   - Windows: `powershell -ExecutionPolicy Bypass -File build_spa.ps1`
+   - macOS/Linux: `bash build_spa.sh`
+2. เริ่ม Django: `python manage.py runserver`
+3. เปิด http://localhost:8000 — SPA จะถูกเสิร์ฟจาก Django โดยตรง
+
+Build script จะรัน `npm install && npm run build` ใน `frontend/` แล้วคัดลอก `frontend/dist/` เข้า `backend/uploads/static/spa/` Django จะ serve `index.html` และ catch-all route สำหรับ client-side paths (`/uploads`, `/settings` ฯลฯ)
+
+### จำกัด CORS สำหรับ Production
+`CORS_ALLOW_ALL_ORIGINS = True` ใช้ได้ใน dev mode สำหรับ production จริงให้แก้ไขใน `backend/core/settings.py`:
+```python
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = ["https://your-host"]
 ```
