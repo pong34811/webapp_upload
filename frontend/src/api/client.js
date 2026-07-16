@@ -41,6 +41,10 @@ export const destinationAPI = {
   remove: (id) => api.delete(`/destinations/${id}/`),
 }
 
+export const oauthAPI = {
+  start: () => api.get('/oauth/youtube/start/'),
+}
+
 export const uploadAPI = {
   create: (formData, onProgress) =>
     api.post('/uploads/', formData, {

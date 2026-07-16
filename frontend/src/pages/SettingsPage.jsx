@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
-import { destinationAPI } from '../api/client'
+import { destinationAPI, oauthAPI } from '../api/client'
 import DestinationForm from '../components/DestinationForm'
 
 export default function SettingsPage() {
   const [destinations, setDestinations] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [connecting, setConnecting] = useState(false)
 
   const load = async () => {
     const res = await destinationAPI.list()
@@ -14,6 +15,31 @@ export default function SettingsPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type === 'oauth-success') {
+        toast.success('เชื่อมต่อ YouTube สำเร็จ')
+        load()
+      } else if (e.data?.type === 'oauth-error') {
+        toast.error('เชื่อมต่อล้มเหลว: ' + (e.data.message || ''))
+      }
+      setConnecting(false)
+    }
+    window.addEventListener('message', onMsg)
+    return () => window.removeEventListener('message', onMsg)
+  }, [])
+
+  const handleConnect = async () => {
+    setConnecting(true)
+    try {
+      const res = await oauthAPI.start()
+      window.open(res.data.auth_url, '_blank', 'width=600,height=700')
+    } catch {
+      toast.error('ไม่สามารถเริ่มการเชื่อมต่อได้')
+      setConnecting(false)
+    }
+  }
 
   const handleSubmit = async (form) => {
     try {
@@ -44,6 +70,9 @@ export default function SettingsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <h2>จัดการตั้งค่าช่องทาง</h2>
         <button onClick={() => { setEditing(null); setShowForm(true) }}>เพิ่ม</button>
+        <button onClick={handleConnect} disabled={connecting}>
+          {connecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
+        </button>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
