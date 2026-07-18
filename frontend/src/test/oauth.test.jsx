@@ -13,6 +13,7 @@ vi.mock('../api/client', async () => {
   return {
     ...actual,
     oauthAPI: { start: vi.fn() },
+    authAPI: { ...actual.authAPI, me: vi.fn().mockResolvedValue({ data: { username: 'admin' } }) },
   }
 })
 

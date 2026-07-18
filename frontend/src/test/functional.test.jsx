@@ -58,6 +58,7 @@ describe('LoginPage', () => {
 
   it('calls authAPI.login with entered credentials on submit', async () => {
     authAPI.login.mockResolvedValue({ data: {} })
+    authAPI.me.mockResolvedValue({ data: { username: 'admin' } })
     const user = userEvent.setup()
     render(
       <MemoryRouter>

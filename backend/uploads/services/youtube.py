@@ -1,4 +1,5 @@
 import os
+import datetime
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
@@ -20,7 +21,9 @@ def upload_to_youtube(file_path, title, description, tags, privacy, access_token
     }
 
     if scheduled_time:
-        from django.utils import timezone  # noqa: F401
+        from django.utils import timezone
+        if timezone.is_naive(scheduled_time):
+            scheduled_time = timezone.make_aware(scheduled_time, datetime.timezone.utc)
         body["status"]["privacyStatus"] = "private"
         body["status"]["publishAt"] = scheduled_time.isoformat()
 

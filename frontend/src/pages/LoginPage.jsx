@@ -14,6 +14,11 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await authAPI.login(username, password)
+      const me = await authAPI.me()
+      if (!me.data.username) {
+        toast.error('เข้าสู่ระบบล้มเหลว ไม่ได้รับ session')
+        return
+      }
       toast.success('เข้าสู่ระบบสำเร็จ')
       navigate('/')
     } catch {
