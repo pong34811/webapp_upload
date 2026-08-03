@@ -31,7 +31,7 @@ export default function HistoryPage() {
         <thead>
           <tr style={{ borderBottom: '2px solid #ddd' }}>
             <th style={{ padding: 8, textAlign: 'left' }}>ชื่อคลิป</th>
-            <th style={{ padding: 8, textAlign: 'left' }}>เป้าหมาย</th>
+            <th style={{ padding: 8, textAlign: 'left' }}>Member Platform Upload</th>
             <th style={{ padding: 8, textAlign: 'left' }}>สถานะ</th>
             <th style={{ padding: 8, textAlign: 'left' }}>ความคืบหน้า</th>
             <th style={{ padding: 8, textAlign: 'left' }}>เวลาสร้าง</th>

@@ -8,9 +8,6 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
     name: '',
     access_token: '',
     page_id: '',
-    client_id: '',
-    client_secret: '',
-    refresh_token: '',
   })
 
   useEffect(() => {
@@ -20,9 +17,6 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
         name: destination.name,
         access_token: destination.access_token,
         page_id: destination.page_id || '',
-        client_id: destination.client_id || '',
-        client_secret: destination.client_secret || '',
-        refresh_token: destination.refresh_token || '',
       })
     }
   }, [destination])
@@ -56,7 +50,7 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <form onSubmit={handleSubmit} style={{ background: '#fff', padding: 24, borderRadius: 8, width: 400 }}>
-        <h3>{destination ? 'แก้ไขเป้าหมาย' : 'เพิ่มเป้าหมาย'}</h3>
+        <h3>{destination ? 'แก้ไข Member Platform Upload' : 'เพิ่ม Member Platform Upload'}</h3>
         <div style={{ marginBottom: 12 }}>
           <select name="platform" value={form.platform} onChange={handleChange} style={{ width: '100%', padding: 8 }}>
             <option value="youtube">YouTube</option>
@@ -73,15 +67,6 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
           <>
             <div style={{ marginBottom: 12 }}>
               <button type="button" onClick={handleConnectGoogle}>เชื่อมต่อ Google</button>
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <input name="client_id" placeholder="Client ID (optional)" value={form.client_id} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <input name="client_secret" placeholder="Client Secret (optional)" value={form.client_secret} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <input name="refresh_token" placeholder="Refresh Token (optional)" value={form.refresh_token} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
             </div>
           </>
         )}

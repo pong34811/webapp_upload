@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Destination, UploadJob, YouTubeAppConfig
+from .models import Destination, UploadJob
 
 
 @admin.register(Destination)
@@ -10,8 +10,3 @@ class DestinationAdmin(admin.ModelAdmin):
 @admin.register(UploadJob)
 class UploadJobAdmin(admin.ModelAdmin):
     list_display = ("title", "destination", "status", "created_at")
-
-
-@admin.register(YouTubeAppConfig)
-class YouTubeAppConfigAdmin(admin.ModelAdmin):
-    list_display = ("client_id", "redirect_uri")

@@ -18,7 +18,7 @@ def _raise_fb_error(stage, resp):
     logger.error("Facebook API error [%s]: %s", stage, body)
     if code == 190 or "expired" in msg.lower() or "session" in msg.lower():
         raise ValueError(
-            "Access Token ของ Facebook หมดอายุหรือไม่ถูกต้อง กรุณาสร้าง Page Access Token ใหม่ใน Graph Explorer แล้วแก้ไขในหน้า Destinations"
+            "Access Token ของ Facebook หมดอายุหรือไม่ถูกต้อง กรุณาสร้าง Page Access Token ใหม่ใน Graph Explorer แล้วแก้ไขในหน้า Member Platform Upload"
         )
     if code == 100 or "pages_manage_posts" in msg or "publish_video" in msg:
         raise ValueError(
@@ -69,6 +69,7 @@ def upload_to_facebook(file_path, title, description, access_token, page_id, sch
 
     if scheduled_time:
         finish_data["scheduled_publish_time"] = int(scheduled_time.timestamp())
+        finish_data["published"] = "false"
 
     resp = requests.post(session_url, data=finish_data)
     if resp.status_code != 200:

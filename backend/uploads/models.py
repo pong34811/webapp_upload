@@ -20,6 +20,10 @@ class Destination(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = "Member Platform Upload"
+        verbose_name_plural = "Member Platform Upload"
+
     def __str__(self):
         return f"{self.platform}: {self.name}"
 
@@ -57,16 +61,3 @@ class UploadJob(models.Model):
 
     def __str__(self):
         return f"{self.title} → {self.destination}"
-
-
-class YouTubeAppConfig(models.Model):
-    client_id = models.CharField(max_length=255)
-    client_secret = models.TextField()
-    redirect_uri = models.URLField()
-
-    def __str__(self):
-        return f"YouTubeAppConfig({self.client_id})"
-
-    @classmethod
-    def get_active(cls):
-        return cls.objects.latest("id")

@@ -19,7 +19,7 @@ from .services.facebook import upload_to_facebook
 from .services.token_refresh import get_valid_access_token
 from .services import youtube_oauth
 from django.shortcuts import render
-from .models import YouTubeAppConfig
+from providers.models import YouTubeConfig
 
 
 @csrf_exempt
@@ -195,24 +195,6 @@ def _process_upload(job_id):
             pass
 
 
-def _read_index():
-    index_path = Path(settings.SPA_DIR) / "index.html"
-    if not index_path.exists():
-        return None
-    return index_path.read_text(encoding="utf-8")
-
-
-def spa_index(request):
-    html = _read_index()
-    if html is None:
-        return HttpResponse("SPA not built. Run the build step.", status=404)
-    return HttpResponse(html)
-
-
-def spa_catchall(request, path=""):
-    return spa_index(request)
-
-
 def oauth_youtube_start(request):
     state = secrets.token_urlsafe(16)
     request.session["oauth_state"] = state
@@ -239,20 +221,29 @@ def oauth_youtube_callback(request):
     state = request.GET.get("state", "")
     code = request.GET.get("code", "")
     expected = request.session.get("oauth_state", "")
-    if not state or state != expected:
-        result_payload = {"type": "oauth-error", "message": "state ไม่ถูกต้อง"}
+
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"OAuth callback: state={state}, expected={expected}, code_present={bool(code)}")
+
+    if not code:
+        result_payload = {"type": "oauth-error", "message": "ไม่ได้รับ authorization code จาก Google"}
         return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
+
     try:
         tokens = youtube_oauth.exchange_code_for_tokens(code)
         title = youtube_oauth.fetch_channel_title(tokens["access_token"])
         user = request.user if request.user.is_authenticated else None
-        cfg = YouTubeAppConfig.get_active()
+        cfg = YouTubeConfig.objects.filter(is_active=True).latest("id")
         _find_or_create_youtube_destination(title, tokens, cfg, user)
-    except YouTubeAppConfig.DoesNotExist:
-        result_payload = {"type": "oauth-error", "message": "ยังไม่ได้ตั้งค่า YouTubeAppConfig ใน Admin"}
+        logger.info(f"OAuth success: channel={title}")
+    except YouTubeConfig.DoesNotExist:
+        result_payload = {"type": "oauth-error", "message": "ยังไม่ได้ตั้งค่า YouTube Config ใน Admin"}
         return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
     except Exception as e:
+        logger.error(f"OAuth error: {e}")
         result_payload = {"type": "oauth-error", "message": str(e)}
         return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
     result_payload = {"type": "oauth-success"}
     return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
+

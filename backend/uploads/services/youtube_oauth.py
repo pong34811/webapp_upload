@@ -1,7 +1,7 @@
 import requests
 from urllib.parse import urlencode
 from django.core.exceptions import ObjectDoesNotExist
-from ..models import YouTubeAppConfig
+from providers.models import YouTubeConfig
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -14,9 +14,9 @@ SCOPES = (
 
 def _config():
     try:
-        return YouTubeAppConfig.get_active()
-    except ObjectDoesNotExist:
-        raise ValueError("ยังไม่ได้ตั้งค่า YouTubeAppConfig ใน Admin")
+        return YouTubeConfig.objects.filter(is_active=True).latest("id")
+    except YouTubeConfig.DoesNotExist:
+        raise ValueError("ยังไม่ได้ตั้งค่า YouTube Config ใน Admin")
 
 
 def build_auth_url(state):

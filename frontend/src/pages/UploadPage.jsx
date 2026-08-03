@@ -87,7 +87,7 @@ export default function UploadPage() {
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 12 }}>
           <select value={destinationId} onChange={(e) => setDestinationId(e.target.value)} style={{ width: '100%', padding: 8 }} required>
-            <option value="">เลือกเป้าหมาย</option>
+            <option value="">เลือก Member Platform Upload</option>
             {destinations.map((d) => (
               <option key={d.id} value={d.id}>{d.platform} - {d.name}</option>
             ))}

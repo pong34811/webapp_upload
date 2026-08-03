@@ -5,7 +5,7 @@ from uploads.services import youtube_oauth
 
 class YouTubeOAuthTest(TestCase):
     def test_build_auth_url_contains_state_and_scope(self):
-        with mock.patch("uploads.services.youtube_oauth.YouTubeAppConfig.get_active") as cfg:
+        with mock.patch("uploads.services.youtube_oauth._config") as cfg:
             cfg.return_value.client_id = "cid"
             cfg.return_value.client_secret = "sec"
             cfg.return_value.redirect_uri = "http://localhost:8000/api/oauth/youtube/callback/"
@@ -19,7 +19,7 @@ class YouTubeOAuthTest(TestCase):
         fake.raise_for_status.return_value = None
         fake.json.return_value = {"access_token": "atok", "refresh_token": "rtok"}
         with mock.patch("uploads.services.youtube_oauth.requests.post", return_value=fake):
-            with mock.patch("uploads.services.youtube_oauth.YouTubeAppConfig.get_active") as cfg:
+            with mock.patch("uploads.services.youtube_oauth._config") as cfg:
                 cfg.return_value.client_id = "cid"
                 cfg.return_value.client_secret = "sec"
                 cfg.return_value.redirect_uri = "http://localhost:8000/api/oauth/youtube/callback/"
@@ -39,7 +39,7 @@ class YouTubeOAuthTest(TestCase):
         fake = mock.Mock()
         fake.raise_for_status.side_effect = Exception("invalid_grant")
         with mock.patch("uploads.services.youtube_oauth.requests.post", return_value=fake):
-            with mock.patch("uploads.services.youtube_oauth.YouTubeAppConfig.get_active") as cfg:
+            with mock.patch("uploads.services.youtube_oauth._config") as cfg:
                 cfg.return_value.client_id = "cid"
                 cfg.return_value.client_secret = "sec"
                 cfg.return_value.redirect_uri = "http://localhost:8000/api/oauth/youtube/callback/"
