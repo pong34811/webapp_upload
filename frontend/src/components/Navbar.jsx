@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { authAPI } from '../api/client'
 import { toast } from 'react-toastify'
 
@@ -11,14 +11,23 @@ export default function Navbar() {
     navigate('/login')
   }
 
+  const linkCls = ({ isActive }) => `nav-link${isActive ? ' active' : ''}`
+
   return (
-    <nav style={{ display: 'flex', gap: 20, padding: '12px 20px', background: '#1a1a2e', color: '#fff' }}>
-      <Link to="/" style={{ color: '#fff', textDecoration: 'none' }}>อัปโหลด</Link>
-      <Link to="/history" style={{ color: '#fff', textDecoration: 'none' }}>ประวัติ</Link>
-      <Link to="/settings" style={{ color: '#fff', textDecoration: 'none' }}>ตั้งค่า</Link>
-      <button onClick={handleLogout} style={{ marginLeft: 'auto', background: 'none', color: '#fff', border: '1px solid #fff', padding: '4px 12px', cursor: 'pointer' }}>
-        ออกจากระบบ
-      </button>
-    </nav>
+    <header className="topbar">
+      <div className="topbar-inner">
+        <NavLink to="/" className="brand">
+          <span className="brand-mark">▲</span>
+          Web Upload
+        </NavLink>
+        <nav className="nav">
+          <NavLink to="/" end className={linkCls}>อัปโหลด</NavLink>
+          <NavLink to="/history" className={linkCls}>ประวัติ</NavLink>
+          <NavLink to="/settings" className={linkCls}>ตั้งค่า</NavLink>
+        </nav>
+        <span className="topbar-spacer" />
+        <button onClick={handleLogout} className="btn btn-ghost btn-sm">ออกจากระบบ</button>
+      </div>
+    </header>
   )
 }

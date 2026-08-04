@@ -29,33 +29,39 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '100px auto', padding: 20 }}>
-      <h2>เข้าสู่ระบบผู้ดูแล</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 12 }}>
-          <input
-            type="text"
-            placeholder="ชื่อผู้ใช้"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={{ width: '100%', padding: 8 }}
-            required
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <input
-            type="password"
-            placeholder="รหัสผ่าน"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', padding: 8 }}
-            required
-          />
-        </div>
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: 10 }}>
-          {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
-        </button>
-      </form>
+    <div className="auth-wrap">
+      <div className="card auth-card card-pad">
+        <h2 style={{ marginBottom: 16 }}>เข้าสู่ระบบผู้ดูแล</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="username">ชื่อผู้ใช้</label>
+            <input
+              id="username"
+              className="input"
+              type="text"
+              placeholder="ชื่อผู้ใช้"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="password">รหัสผ่าน</label>
+            <input
+              id="password"
+              className="input"
+              type="password"
+              placeholder="รหัสผ่าน"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" disabled={loading} className="btn btn-primary btn-block">
+            {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

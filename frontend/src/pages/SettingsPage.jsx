@@ -68,36 +68,47 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2>จัดการตั้งค่าช่องทาง</h2>
-        <button onClick={() => { setEditing(null); setShowForm(true) }}>เพิ่ม</button>
-        <button onClick={handleConnect} disabled={connecting}>
-          {connecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
-        </button>
+      <div className="page-head">
+        <h2 className="page-title">จัดการตั้งค่าช่องทาง</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost" onClick={handleConnect} disabled={connecting}>
+            {connecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
+          </button>
+          <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>เพิ่ม</button>
+        </div>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid #ddd' }}>
-            <th style={{ padding: 8, textAlign: 'left' }}>แพลตฟอร์ม</th>
-            <th style={{ padding: 8, textAlign: 'left' }}>ชื่อ</th>
-            <th style={{ padding: 8, textAlign: 'left' }}>Token</th>
-            <th style={{ padding: 8 }}>การจัดการ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {destinations.map((d) => (
-            <tr key={d.id} style={{ borderBottom: '1px solid #eee' }}>
-              <td style={{ padding: 8 }}>{d.platform}</td>
-              <td style={{ padding: 8 }}>{d.name}</td>
-              <td style={{ padding: 8 }}>{String(d.access_token).slice(0, 20)}...</td>
-              <td style={{ padding: 8, textAlign: 'center' }}>
-                <button onClick={() => { setEditing(d); setShowForm(true) }} style={{ marginRight: 8 }}>แก้ไข</button>
-                <button onClick={() => handleDelete(d.id)}>ปิดใช้งาน</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {destinations.length === 0 ? (
+        <div className="card empty">
+          <p className="empty-title">ยังไม่มีช่องทางที่เชื่อมต่อ</p>
+          <p className="empty-text">เพิ่มช่อง YouTube หรือ Facebook เพื่อเริ่มอัปโหลด</p>
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>แพลตฟอร์ม</th>
+                <th>ชื่อ</th>
+                <th>Token</th>
+                <th style={{ textAlign: 'right' }}>การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {destinations.map((d) => (
+                <tr key={d.id}>
+                  <td>{d.platform}</td>
+                  <td className="cell-title">{d.name}</td>
+                  <td className="cell-mono">{String(d.access_token).slice(0, 20)}...</td>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(d); setShowForm(true) }} style={{ marginRight: 8 }}>แก้ไข</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(d.id)}>ปิดใช้งาน</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {showForm && <DestinationForm destination={editing} onSubmit={handleSubmit} onClose={() => { setShowForm(false); setEditing(null) }} />}
     </div>
   )

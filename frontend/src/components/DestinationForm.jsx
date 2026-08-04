@@ -48,36 +48,38 @@ export default function DestinationForm({ destination, onSubmit, onClose }) {
   }
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <form onSubmit={handleSubmit} style={{ background: '#fff', padding: 24, borderRadius: 8, width: 400 }}>
-        <h3>{destination ? 'แก้ไข Member Platform Upload' : 'เพิ่ม Member Platform Upload'}</h3>
-        <div style={{ marginBottom: 12 }}>
-          <select name="platform" value={form.platform} onChange={handleChange} style={{ width: '100%', padding: 8 }}>
+    <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <form onSubmit={handleSubmit} className="modal">
+        <h3 style={{ marginBottom: 16 }}>{destination ? 'แก้ไข Member Platform Upload' : 'เพิ่ม Member Platform Upload'}</h3>
+        <div className="field">
+          <label htmlFor="platform">แพลตฟอร์ม</label>
+          <select id="platform" className="select" name="platform" value={form.platform} onChange={handleChange}>
             <option value="youtube">YouTube</option>
             <option value="facebook">Facebook</option>
           </select>
         </div>
-        <div style={{ marginBottom: 12 }}>
-          <input name="name" placeholder="ชื่อ (เช่น ช่อง A)" value={form.name} onChange={handleChange} style={{ width: '100%', padding: 8 }} required />
+        <div className="field">
+          <label htmlFor="name">ชื่อ</label>
+          <input id="name" className="input" name="name" placeholder="ชื่อ (เช่น ช่อง A)" value={form.name} onChange={handleChange} required />
         </div>
-        <div style={{ marginBottom: 12 }}>
-          <input name="access_token" placeholder="Access Token" value={form.access_token} onChange={handleChange} style={{ width: '100%', padding: 8 }} />
+        <div className="field">
+          <label htmlFor="access_token">Access Token</label>
+          <input id="access_token" className="input" name="access_token" placeholder="Access Token" value={form.access_token} onChange={handleChange} />
         </div>
         {form.platform === 'youtube' && (
-          <>
-            <div style={{ marginBottom: 12 }}>
-              <button type="button" onClick={handleConnectGoogle}>เชื่อมต่อ Google</button>
-            </div>
-          </>
-        )}
-        {form.platform === 'facebook' && (
-          <div style={{ marginBottom: 12 }}>
-            <input name="page_id" placeholder="Page ID" value={form.page_id} onChange={handleChange} style={{ width: '100%', padding: 8 }} required />
+          <div className="field">
+            <button type="button" className="btn btn-ghost" onClick={handleConnectGoogle}>เชื่อมต่อ Google</button>
           </div>
         )}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="submit" style={{ flex: 1, padding: 8 }}>บันทึก</button>
-          <button type="button" onClick={onClose} style={{ flex: 1, padding: 8 }}>ยกเลิก</button>
+        {form.platform === 'facebook' && (
+          <div className="field">
+            <label htmlFor="page_id">Page ID</label>
+            <input id="page_id" className="input" name="page_id" placeholder="Page ID" value={form.page_id} onChange={handleChange} required />
+          </div>
+        )}
+        <div className="modal-row">
+          <button type="submit" className="btn btn-primary">บันทึก</button>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>ยกเลิก</button>
         </div>
       </form>
     </div>
