@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'react-toastify'
 import { destinationAPI, uploadAPI } from '../api/client'
 import ProgressBar from '../components/ProgressBar'
 
 const ACTIVE = ['pending', 'uploading']
 const JOB_LABEL = { pending: 'รอดำเนินการ', uploading: 'กำลังอัปโหลด', success: 'สำเร็จ', failed: 'ล้มเหลว' }
+const TEMPLATES_KEY = 'upload_templates'
 let keySeq = 0
+
+function loadTemplates() {
+  try { return JSON.parse(localStorage.getItem(TEMPLATES_KEY)) || [] } catch { return [] }
+}
+function saveTemplates(t) { localStorage.setItem(TEMPLATES_KEY, JSON.stringify(t)) }
 
 export default function UploadPage() {
   const [destinations, setDestinations] = useState([])
@@ -13,91 +19,92 @@ export default function UploadPage() {
   const [tasks, setTasks] = useState([])
   const [jobs, setJobs] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [templates, setTemplates] = useState(loadTemplates)
+  const [tplName, setTplName] = useState('')
+  const fileRef = useRef(null)
+  const dragCounter = useRef(0)
 
-  useEffect(() => {
-    destinationAPI.list().then((res) => setDestinations(res.data))
-  }, [])
+  useEffect(() => { destinationAPI.list().then((res) => setDestinations(res.data)) }, [])
 
   useEffect(() => {
     if (!uploading) return
     const interval = setInterval(async () => {
       const active = jobs.filter((j) => ACTIVE.includes(j.status))
-      if (active.length === 0) {
-        clearInterval(interval)
-        setUploading(false)
-        return
-      }
-      const updates = await Promise.all(
-        active.map(async (j) => {
-          const res = await uploadAPI.get(j.id)
-          return { id: j.id, ...res.data }
-        })
-      )
-      setJobs((prev) =>
-        prev.map((j) => {
-          const u = updates.find((x) => x.id === j.id)
-          return u ? { ...j, status: u.status, progress: u.progress, error_message: u.error_message } : j
-        })
-      )
+      if (active.length === 0) { clearInterval(interval); setUploading(false); return }
+      const updates = await Promise.all(active.map(async (j) => { const res = await uploadAPI.get(j.id); return { id: j.id, ...res.data } }))
+      setJobs((prev) => prev.map((j) => { const u = updates.find((x) => x.id === j.id); return u ? { ...j, status: u.status, progress: u.progress, error_message: u.error_message } : j }))
     }, 1500)
     return () => clearInterval(interval)
   }, [uploading, jobs])
 
-  const addFiles = (fileList) => {
+  const addFiles = useCallback((fileList) => {
     const newTasks = [...fileList].map((file) => ({
-      key: `${Date.now()}-${keySeq++}`,
-      file,
-      title: '',
-      description: '',
-      tags: '',
-      privacy: 'private',
-      scheduledTime: '',
+      key: `${Date.now()}-${keySeq++}`, file, title: '', description: '', tags: '', privacy: 'private', scheduledTime: '',
     }))
     setTasks((prev) => [...prev, ...newTasks])
-  }
+  }, [])
 
-  const updateTask = (key, patch) => {
-    setTasks((prev) => prev.map((t) => (t.key === key ? { ...t, ...patch } : t)))
-  }
+  // Drag-and-drop handlers
+  const onDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current++; if (e.dataTransfer.types.includes('Files')) setDragging(true) }
+  const onDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current--; if (dragCounter.current === 0) setDragging(false) }
+  const onDragOver = (e) => { e.preventDefault(); e.stopPropagation() }
+  const onDrop = (e) => { e.preventDefault(); e.stopPropagation(); dragCounter.current = 0; setDragging(false); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files) }
 
-  const removeTask = (key) => {
-    setTasks((prev) => prev.filter((t) => t.key !== key))
+  const updateTask = (key, patch) => setTasks((prev) => prev.map((t) => (t.key === key ? { ...t, ...patch } : t)))
+  const removeTask = (key) => setTasks((prev) => prev.filter((t) => t.key !== key))
+
+  // Bulk edit
+  const bulkPrivacy = (val) => setTasks((prev) => prev.map((t) => ({ ...t, privacy: val })))
+  const bulkTags = (val) => setTasks((prev) => prev.map((t) => ({ ...t, tags: val })))
+
+  // Templates
+  const applyTemplate = (tpl) => {
+    setTasks((prev) => prev.map((t) => ({ ...t, title: tpl.title || t.title, description: tpl.description || t.description, tags: tpl.tags || t.tags, privacy: tpl.privacy || t.privacy })))
+    toast.success(`ใช้เทมเพลต: ${tpl.name}`)
+  }
+  const saveAsTemplate = () => {
+    if (!tplName.trim()) { toast.error('กรุณาใส่ชื่อเทมเพลต'); return }
+    const tpl = { name: tplName.trim(), title: '', description: tasks[0]?.description || '', tags: tasks[0]?.tags || '', privacy: tasks[0]?.privacy || 'private' }
+    const next = [...templates.filter((t) => t.name !== tpl.name), tpl]
+    setTemplates(next); saveTemplates(next); setTplName(''); toast.success('บันทึกเทมเพลตแล้ว')
+  }
+  const deleteTemplate = (name) => {
+    const next = templates.filter((t) => t.name !== name)
+    setTemplates(next); saveTemplates(next)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (tasks.length === 0 || !destinationId) {
-      toast.error('กรุณาเลือกไฟล์และปลายทาง')
-      return
-    }
+    if (tasks.length === 0 || !destinationId) { toast.error('กรุณาเลือกไฟล์และปลายทาง'); return }
     setUploading(true)
-    const results = await Promise.allSettled(
-      tasks.map(async (task) => {
-        const formData = new FormData()
-        formData.append('file', task.file)
-        formData.append('destination_id', destinationId)
-        formData.append('title', task.title || task.file.name)
-        formData.append('description', task.description)
-        formData.append('tags', task.tags)
-        formData.append('privacy', task.privacy)
-        if (task.scheduledTime) formData.append('scheduled_time', task.scheduledTime)
-        const res = await uploadAPI.create(formData)
-        return res.data
-      })
-    )
+    const results = await Promise.allSettled(tasks.map(async (task) => {
+      const formData = new FormData()
+      formData.append('file', task.file)
+      formData.append('destination_id', destinationId)
+      formData.append('title', task.title || task.file.name)
+      formData.append('description', task.description)
+      formData.append('tags', task.tags)
+      formData.append('privacy', task.privacy)
+      if (task.scheduledTime) formData.append('scheduled_time', task.scheduledTime)
+      const res = await uploadAPI.create(formData)
+      return res.data
+    }))
     const newJobs = results.map((r, i) => {
       const ok = r.status === 'fulfilled'
-      return {
-        filename: tasks[i].file.name,
-        id: ok ? r.value.id : null,
-        status: ok ? r.value.status : 'failed',
-        progress: 0,
-        error_message: ok ? '' : (r.reason?.response?.data?.error || 'อัปโหลดล้มเหลว'),
-      }
+      return { filename: tasks[i].file.name, id: ok ? r.value.id : null, status: ok ? r.value.status : 'failed', progress: 0, error_message: ok ? '' : (r.reason?.response?.data?.error || 'อัปโหลดล้มเหลว') }
     })
-    setJobs(newJobs)
-    setTasks([])
+    setJobs(newJobs); setTasks([])
     if (newJobs.every((j) => j.status === 'failed')) setUploading(false)
+  }
+
+  const handleRetry = async (id) => {
+    try {
+      const res = await uploadAPI.retry(id)
+      setJobs((prev) => prev.map((j) => j.id === id ? { ...j, status: res.data.status, progress: 0, error_message: '' } : j))
+      setUploading(true)
+      toast.success('ลองใหม่แล้ว')
+    } catch { toast.error('ลองใหม่ไม่สำเร็จ') }
   }
 
   const handleCancel = async (id) => {
@@ -106,7 +113,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div>
+    <div onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDragOver={onDragOver} onDrop={onDrop}>
       <div className="page-head">
         <h2 className="page-title">อัปโหลดวิดีโอ</h2>
       </div>
@@ -116,67 +123,88 @@ export default function UploadPage() {
             <label htmlFor="destination">Member Platform Upload</label>
             <select id="destination" className="select" value={destinationId} onChange={(e) => setDestinationId(e.target.value)} required>
               <option value="">เลือก Member Platform Upload</option>
-              {destinations.map((d) => (
-                <option key={d.id} value={d.id}>{d.platform} - {d.name}</option>
-              ))}
+              {destinations.map((d) => (<option key={d.id} value={d.id}>{d.platform} - {d.name}</option>))}
             </select>
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
             <label htmlFor="file">ไฟล์วิดีโอ</label>
-            <div className="dropzone">
+            <div className={`dropzone ${dragging ? 'dropzone-active' : ''}`} ref={fileRef}>
               <input id="file" type="file" accept=".mp4,.mov,.avi,.mkv,.webm" multiple onChange={(e) => { addFiles(e.target.files); e.target.value = '' }} />
               <span className="dropzone-icon">🎬</span>
-              <p className="dropzone-title">เลือกไฟล์วิดีโอ (เลือกหลายไฟล์ได้)</p>
-              <p className="dropzone-hint">ลากไฟล์หรือคลิกเลือก — แต่ละไฟล์กลายเป็น task ที่กรอกข้อมูลแยกได้</p>
+              <p className="dropzone-title">{dragging ? 'วางไฟล์ที่นี่' : 'เลือกไฟล์วิดีโอ (เลือกหลายไฟล์ได้)'}</p>
+              <p className="dropzone-hint">{dragging ? 'ปล่อยเพื่อเพิ่มไฟล์' : 'ลากไฟล์มาวางหรือคลิกเลือก — แต่ละไฟล์กลายเป็น task ที่กรอกข้อมูลแยกได้'}</p>
             </div>
           </div>
         </div>
 
         {tasks.length > 0 && (
-          <div className="table-wrap" style={{ marginBottom: 20 }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>ไฟล์</th>
-                  <th>video_title</th>
-                  <th>description</th>
-                  <th>tags</th>
-                  <th>ความเป็นส่วนตัว</th>
-                  <th>กำหนดเวลา</th>
-                  <th style={{ width: 44 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((t) => (
-                  <tr key={t.key}>
-                    <td className="cell-title" style={{ whiteSpace: 'nowrap' }}>{t.file.name}</td>
-                    <td>
-                      <input className="input" placeholder="ใช้ชื่อไฟล์" value={t.title} onChange={(e) => updateTask(t.key, { title: e.target.value })} />
-                    </td>
-                    <td className="textarea-cell">
-                      <textarea className="textarea" rows={4} placeholder="คำอธิบาย" value={t.description} onChange={(e) => updateTask(t.key, { description: e.target.value })} />
-                    </td>
-                    <td className="textarea-cell">
-                      <textarea className="textarea" rows={3} placeholder="แท็ก" value={t.tags} onChange={(e) => updateTask(t.key, { tags: e.target.value })} />
-                    </td>
-                    <td>
-                      <select className="select" value={t.privacy} onChange={(e) => updateTask(t.key, { privacy: e.target.value })}>
-                        <option value="public">สาธารณะ</option>
-                        <option value="private">ส่วนตัว</option>
-                        <option value="unlisted">ไม่ระบุชื่อ</option>
-                      </select>
-                    </td>
-                    <td>
-                      <input className="input" type="datetime-local" value={t.scheduledTime} onChange={(e) => updateTask(t.key, { scheduledTime: e.target.value })} style={{ minWidth: 150 }} />
-                    </td>
-                    <td>
-                      <button type="button" className="icon-btn" onClick={() => removeTask(t.key)} aria-label={`ลบ ${t.file.name}`}>✕</button>
-                    </td>
-                  </tr>
+          <>
+            {/* Bulk edit bar */}
+            <div className="bulk-bar card card-pad">
+              <span className="bulk-label">ตั้งค่าทั้งหมด:</span>
+              <select className="select select-sm" onChange={(e) => bulkPrivacy(e.target.value)} defaultValue="">
+                <option value="" disabled>ความเป็นส่วนตัว</option>
+                <option value="public">สาธารณะ</option>
+                <option value="private">ส่วนตัว</option>
+                <option value="unlisted">ไม่ระบุชื่อ</option>
+              </select>
+              <input className="input input-sm" placeholder="แท็ก (ตั้งค่าทั้งหมด)" onBlur={(e) => { if (e.target.value) bulkTags(e.target.value) }} onKeyDown={(e) => { if (e.key === 'Enter') { bulkTags(e.target.value); e.target.blur() } }} />
+              <span className="bulk-sep" />
+              <input className="input input-sm" placeholder="ชื่อเทมเพลต" value={tplName} onChange={(e) => setTplName(e.target.value)} />
+              <button type="button" className="btn btn-ghost btn-sm" onClick={saveAsTemplate}>บันทึกเทมเพลต</button>
+            </div>
+
+            {templates.length > 0 && (
+              <div className="tpl-bar">
+                {templates.map((tpl) => (
+                  <span key={tpl.name} className="tpl-chip">
+                    <button type="button" className="tpl-chip-btn" onClick={() => applyTemplate(tpl)}>{tpl.name}</button>
+                    <button type="button" className="tpl-chip-x" onClick={() => deleteTemplate(tpl.name)} aria-label={`ลบ ${tpl.name}`}>✕</button>
+                  </span>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            )}
+
+            <div className="table-wrap" style={{ marginBottom: 20 }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>ไฟล์</th>
+                    <th>video_title</th>
+                    <th>description</th>
+                    <th>tags</th>
+                    <th>ความเป็นส่วนตัว</th>
+                    <th>กำหนดเวลา</th>
+                    <th style={{ width: 44 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tasks.map((t) => (
+                    <tr key={t.key}>
+                      <td className="cell-title" style={{ whiteSpace: 'nowrap' }}>
+                        {t.file.type.startsWith('video/') ? (
+                          <video src={URL.createObjectURL(t.file)} className="video-preview" muted preload="metadata" onMouseEnter={(e) => e.target.play()} onMouseLeave={(e) => { e.target.pause(); e.target.currentTime = 0 }} />
+                        ) : null}
+                        <span className="file-name">{t.file.name}</span>
+                      </td>
+                      <td><input className="input" placeholder="ใช้ชื่อไฟล์" value={t.title} onChange={(e) => updateTask(t.key, { title: e.target.value })} /></td>
+                      <td className="textarea-cell"><textarea className="textarea" rows={4} placeholder="คำอธิบาย" value={t.description} onChange={(e) => updateTask(t.key, { description: e.target.value })} /></td>
+                      <td className="textarea-cell"><textarea className="textarea" rows={3} placeholder="แท็ก" value={t.tags} onChange={(e) => updateTask(t.key, { tags: e.target.value })} /></td>
+                      <td>
+                        <select className="select" value={t.privacy} onChange={(e) => updateTask(t.key, { privacy: e.target.value })}>
+                          <option value="public">สาธารณะ</option>
+                          <option value="private">ส่วนตัว</option>
+                          <option value="unlisted">ไม่ระบุชื่อ</option>
+                        </select>
+                      </td>
+                      <td><input className="input" type="datetime-local" value={t.scheduledTime} onChange={(e) => updateTask(t.key, { scheduledTime: e.target.value })} style={{ minWidth: 150 }} /></td>
+                      <td><button type="button" className="icon-btn" onClick={() => removeTask(t.key)} aria-label={`ลบ ${t.file.name}`}>✕</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {jobs.length > 0 && (
@@ -192,12 +220,15 @@ export default function UploadPage() {
                 {ACTIVE.includes(j.status) && (
                   <>
                     <ProgressBar percent={j.progress} />
-                    <button type="button" onClick={() => handleCancel(j.id)} className="btn btn-danger btn-sm" style={{ marginTop: 10 }}>
-                      ยกเลิก
-                    </button>
+                    <button type="button" onClick={() => handleCancel(j.id)} className="btn btn-danger btn-sm" style={{ marginTop: 10 }}>ยกเลิก</button>
                   </>
                 )}
-                {j.status === 'failed' && j.error_message && <p className="job-err">{j.error_message}</p>}
+                {j.status === 'failed' && (
+                  <>
+                    {j.error_message && <p className="job-err">{j.error_message}</p>}
+                    <button type="button" onClick={() => handleRetry(j.id)} className="btn btn-ghost btn-sm" style={{ marginTop: 6 }}>ลองใหม่</button>
+                  </>
+                )}
               </div>
             ))}
           </div>

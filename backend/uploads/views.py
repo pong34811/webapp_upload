@@ -126,6 +126,30 @@ class UploadViewSet(viewsets.ModelViewSet):
         return Response(UploadJobSerializer(job).data, status=201)
 
     @action(detail=True, methods=["post"])
+    def retry(self, request, pk=None):
+        job = self.get_object()
+        if job.status != "failed":
+            return Response({"error": "can only retry failed jobs"}, status=400)
+        if not os.path.exists(job.file_path):
+            return Response({"error": "file no longer available"}, status=400)
+        new_job = UploadJob.objects.create(
+            destination=job.destination,
+            filename=job.filename,
+            file_path=job.file_path,
+            title=job.title,
+            description=job.description,
+            tags=job.tags,
+            privacy=job.privacy,
+            scheduled_time=job.scheduled_time,
+            status="uploading",
+            created_by=request.user,
+            updated_by=request.user,
+        )
+        thread = threading.Thread(target=_process_upload, args=(new_job.id,))
+        thread.start()
+        return Response(UploadJobSerializer(new_job).data, status=201)
+
+    @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         job = self.get_object()
         if job.status in ("pending", "uploading"):
@@ -169,7 +193,7 @@ def _process_upload(job_id):
     finally:
         try:
             job = UploadJob.objects.get(id=job_id)
-            if os.path.exists(job.file_path):
+            if job.status == "success" and os.path.exists(job.file_path):
                 os.remove(job.file_path)
         except Exception:
             pass

@@ -57,6 +57,7 @@ export const uploadAPI = {
     }),
   list: () => api.get('/uploads/'),
   get: (id) => api.get(`/uploads/${id}/`),
+  retry: (id) => api.post(`/uploads/${id}/retry/`),
   cancel: (id) => api.post(`/uploads/${id}/cancel/`),
 }
 
