@@ -125,26 +125,17 @@ describe('DestinationForm', () => {
     vi.clearAllMocks()
   })
 
-  it('shows OAuth fields (client_id, client_secret, refresh_token) for YouTube', () => {
-    render(
-      <MemoryRouter>
-        <DestinationForm destination={null} onSubmit={() => {}} onClose={() => {}} />
-      </MemoryRouter>
-    )
-    expect(screen.getByPlaceholderText('Client ID (optional)')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Client Secret (optional)')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Refresh Token (optional)')).toBeInTheDocument()
-  })
-
-  it('hides OAuth fields and shows Page ID for Facebook', async () => {
+  it('shows connect button for YouTube and Page ID for Facebook', async () => {
     const user = userEvent.setup()
     render(
       <MemoryRouter>
         <DestinationForm destination={null} onSubmit={() => {}} onClose={() => {}} />
       </MemoryRouter>
     )
+    expect(screen.getByRole('button', { name: 'เชื่อมต่อ Google' })).toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Page ID')).not.toBeInTheDocument()
     await user.selectOptions(screen.getByRole('combobox'), 'facebook')
-    expect(screen.queryByPlaceholderText('Client ID (optional)')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'เชื่อมต่อ Google' })).not.toBeInTheDocument()
     expect(screen.getByPlaceholderText('Page ID')).toBeInTheDocument()
   })
 
@@ -158,8 +149,6 @@ describe('DestinationForm', () => {
     )
     await user.type(screen.getByPlaceholderText('ชื่อ (เช่น ช่อง A)'), 'ช่อง A')
     await user.type(screen.getByPlaceholderText('Access Token'), 'tok123')
-    await user.type(screen.getByPlaceholderText('Client ID (optional)'), 'cid')
-    await user.type(screen.getByPlaceholderText('Refresh Token (optional)'), 'rtok')
     await user.click(screen.getByRole('button', { name: 'บันทึก' }))
 
     await waitFor(() => {
@@ -169,8 +158,6 @@ describe('DestinationForm', () => {
     expect(payload).toMatchObject({
       name: 'ช่อง A',
       access_token: 'tok123',
-      client_id: 'cid',
-      refresh_token: 'rtok',
       platform: 'youtube',
     })
   })
