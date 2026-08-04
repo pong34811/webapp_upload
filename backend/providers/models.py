@@ -19,17 +19,3 @@ class YouTubeConfig(BaseProviderConfig):
 
     def __str__(self):
         return f"YouTube Config ({self.client_id})"
-
-
-
-class TikTokConfig(BaseProviderConfig):
-    client_key = models.CharField(max_length=255, help_text="TikTok Client Key")
-    client_secret = models.TextField(help_text="TikTok Client Secret")
-    redirect_uri = models.URLField(help_text="TikTok Redirect URI")
-    
-    class Meta:
-        verbose_name = "TikTok Configuration"
-        verbose_name_plural = "TikTok Configurations"
-
-    def __str__(self):
-        return f"TikTok Config ({self.client_key})"

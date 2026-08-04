@@ -45,28 +45,8 @@ def api_logout(request):
         return JsonResponse({"error": "method not allowed"}, status=405)
     request.session.flush()
     resp = JsonResponse({"message": "ok"})
-    resp.set_cookie(
-        "sessionid",
-        "",
-        max_age=0,
-        expires="Thu, 01 Jan 1970 00:00:00 GMT",
-        path=getattr(settings, "SESSION_COOKIE_PATH", "/"),
-        domain=getattr(settings, "SESSION_COOKIE_DOMAIN", None),
-        secure=getattr(settings, "SESSION_COOKIE_SECURE", False),
-        httponly=getattr(settings, "SESSION_COOKIE_HTTPONLY", True),
-        samesite=getattr(settings, "SESSION_COOKIE_SAMESITE", "Lax"),
-    )
-    resp.set_cookie(
-        "csrftoken",
-        "",
-        max_age=0,
-        expires="Thu, 01 Jan 1970 00:00:00 GMT",
-        path=getattr(settings, "CSRF_COOKIE_PATH", "/"),
-        domain=getattr(settings, "CSRF_COOKIE_DOMAIN", None),
-        secure=getattr(settings, "CSRF_COOKIE_SECURE", False),
-        httponly=False,
-        samesite=getattr(settings, "CSRF_COOKIE_SAMESITE", "Lax"),
-    )
+    resp.delete_cookie("sessionid")
+    resp.delete_cookie("csrftoken")
     return resp
 
 
