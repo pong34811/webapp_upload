@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Destination, UploadJob
+from .models import Destination, UploadJob, UploadTemplate
 
 
 class DestinationSerializer(serializers.ModelSerializer):
@@ -22,6 +22,13 @@ class UploadJobSerializer(serializers.ModelSerializer):
                   "is_active", "created_by", "updated_by", "created_at", "updated_at"]
         read_only_fields = ["status", "progress", "platform_video_id", "error_message",
                             "created_by", "updated_by", "created_at", "updated_at"]
+
+
+class UploadTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UploadTemplate
+        fields = ["id", "name", "description", "tags", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
 
 class UploadCreateSerializer(serializers.Serializer):

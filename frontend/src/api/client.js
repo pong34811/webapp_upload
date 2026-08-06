@@ -61,4 +61,11 @@ export const uploadAPI = {
   cancel: (id) => api.post(`/uploads/${id}/cancel/`),
 }
 
+export const templateAPI = {
+  list: () => api.get('/templates/'),
+  create: (data) => api.post('/templates/', data),
+  update: (id, data) => api.put(`/templates/${id}/`, data),
+  remove: (id) => api.delete(`/templates/${id}/`),
+}
+
 export default api

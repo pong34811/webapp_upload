@@ -76,7 +76,7 @@ export default function HistoryPage() {
                   <tr key={job.id}>
                     <td className="cell-title">{job.title}</td>
                     <td>{job.destination_name}</td>
-                    <td><span className={`badge badge-${job.status}`}>{STATUS_LABEL[j.status]}</span></td>
+                    <td><span className={`badge badge-${job.status}`}>{STATUS_LABEL[job.status]}</span></td>
                     <td>{job.progress}%</td>
                     <td className="cell-mono">{new Date(job.created_at).toLocaleString()}</td>
                     <td>

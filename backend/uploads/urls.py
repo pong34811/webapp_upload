@@ -5,6 +5,7 @@ from . import views
 router = DefaultRouter()
 router.register("destinations", views.DestinationViewSet, basename="destination")
 router.register("uploads", views.UploadViewSet, basename="upload")
+router.register("templates", views.UploadTemplateViewSet, basename="template")
 
 urlpatterns = [
     path("auth/login/", views.api_login, name="api_login"),

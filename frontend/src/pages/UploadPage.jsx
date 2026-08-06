@@ -1,31 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'react-toastify'
-import { destinationAPI, uploadAPI } from '../api/client'
+import { destinationAPI, uploadAPI, templateAPI } from '../api/client'
 import ProgressBar from '../components/ProgressBar'
 
 const ACTIVE = ['pending', 'uploading']
 const JOB_LABEL = { pending: 'รอดำเนินการ', uploading: 'กำลังอัปโหลด', success: 'สำเร็จ', failed: 'ล้มเหลว' }
-const TEMPLATES_KEY = 'upload_templates'
 let keySeq = 0
-
-function loadTemplates() {
-  try { return JSON.parse(localStorage.getItem(TEMPLATES_KEY)) || [] } catch { return [] }
-}
-function saveTemplates(t) { localStorage.setItem(TEMPLATES_KEY, JSON.stringify(t)) }
 
 export default function UploadPage() {
   const [destinations, setDestinations] = useState([])
-  const [destinationId, setDestinationId] = useState('')
+  const [destinationIds, setDestinationIds] = useState([])
   const [tasks, setTasks] = useState([])
   const [jobs, setJobs] = useState([])
   const [uploading, setUploading] = useState(false)
   const [dragging, setDragging] = useState(false)
-  const [templates, setTemplates] = useState(loadTemplates)
+  const [templates, setTemplates] = useState([])
   const [tplName, setTplName] = useState('')
+  const [tplDesc, setTplDesc] = useState('')
+  const [tplTags, setTplTags] = useState('')
   const fileRef = useRef(null)
   const dragCounter = useRef(0)
 
   useEffect(() => { destinationAPI.list().then((res) => setDestinations(res.data)) }, [])
+
+  useEffect(() => { templateAPI.list().then((res) => setTemplates(res.data)) }, [])
 
   useEffect(() => {
     if (!uploading) return
@@ -60,28 +58,36 @@ export default function UploadPage() {
 
   // Templates
   const applyTemplate = (tpl) => {
-    setTasks((prev) => prev.map((t) => ({ ...t, title: tpl.title || t.title, description: tpl.description || t.description, tags: tpl.tags || t.tags, privacy: tpl.privacy || t.privacy })))
+    setTasks((prev) => prev.map((t) => ({ ...t, description: tpl.description || t.description, tags: tpl.tags || t.tags })))
     toast.success(`ใช้เทมเพลต: ${tpl.name}`)
   }
-  const saveAsTemplate = () => {
+  const saveAsTemplate = async () => {
     if (!tplName.trim()) { toast.error('กรุณาใส่ชื่อเทมเพลต'); return }
-    const tpl = { name: tplName.trim(), title: '', description: tasks[0]?.description || '', tags: tasks[0]?.tags || '', privacy: tasks[0]?.privacy || 'private' }
-    const next = [...templates.filter((t) => t.name !== tpl.name), tpl]
-    setTemplates(next); saveTemplates(next); setTplName(''); toast.success('บันทึกเทมเพลตแล้ว')
+    const existing = templates.find((t) => t.name === tplName.trim())
+    const payload = { name: tplName.trim(), description: tplDesc, tags: tplTags }
+    try {
+      const res = existing ? await templateAPI.update(existing.id, payload) : await templateAPI.create(payload)
+      setTemplates((prev) => [...prev.filter((t) => t.id !== res.data.id), res.data])
+      setTplName(''); setTplDesc(''); setTplTags(''); toast.success('บันทึกเทมเพลตแล้ว')
+    } catch { toast.error('บันทึกเทมเพลตไม่สำเร็จ') }
   }
-  const deleteTemplate = (name) => {
-    const next = templates.filter((t) => t.name !== name)
-    setTemplates(next); saveTemplates(next)
+  const deleteTemplate = async (id) => {
+    try {
+      await templateAPI.remove(id)
+      setTemplates((prev) => prev.filter((t) => t.id !== id))
+    } catch { toast.error('ลบเทมเพลตไม่สำเร็จ') }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (tasks.length === 0 || !destinationId) { toast.error('กรุณาเลือกไฟล์และปลายทาง'); return }
+    if (tasks.length === 0 || destinationIds.length === 0) { toast.error('กรุณาเลือกไฟล์และปลายทาง'); return }
     setUploading(true)
-    const results = await Promise.allSettled(tasks.map(async (task) => {
+    const destNames = Object.fromEntries(destinations.map((d) => [d.id, d.name]))
+    const combos = destinationIds.flatMap((did) => tasks.map((task) => ({ did, task })))
+    const results = await Promise.allSettled(combos.map(async ({ did, task }) => {
       const formData = new FormData()
       formData.append('file', task.file)
-      formData.append('destination_id', destinationId)
+      formData.append('destination_id', did)
       formData.append('title', task.title || task.file.name)
       formData.append('description', task.description)
       formData.append('tags', task.tags)
@@ -92,7 +98,7 @@ export default function UploadPage() {
     }))
     const newJobs = results.map((r, i) => {
       const ok = r.status === 'fulfilled'
-      return { filename: tasks[i].file.name, id: ok ? r.value.id : null, status: ok ? r.value.status : 'failed', progress: 0, error_message: ok ? '' : (r.reason?.response?.data?.error || 'อัปโหลดล้มเหลว') }
+      return { filename: combos[i].task.file.name, destination_name: destNames[combos[i].did], id: ok ? r.value.id : null, status: ok ? r.value.status : 'failed', progress: 0, error_message: ok ? '' : (r.reason?.response?.data?.error || 'อัปโหลดล้มเหลว') }
     })
     setJobs(newJobs); setTasks([])
     if (newJobs.every((j) => j.status === 'failed')) setUploading(false)
@@ -120,11 +126,16 @@ export default function UploadPage() {
       <form onSubmit={handleSubmit}>
         <div className="card card-pad" style={{ marginBottom: 20 }}>
           <div className="field">
-            <label htmlFor="destination">Member Platform Upload</label>
-            <select id="destination" className="select" value={destinationId} onChange={(e) => setDestinationId(e.target.value)} required>
-              <option value="">เลือก Member Platform Upload</option>
-              {destinations.map((d) => (<option key={d.id} value={d.id}>{d.platform} - {d.name}</option>))}
-            </select>
+            <label htmlFor="destination">Member Platform Upload (เลือกได้หลายช่อง)</label>
+            <div className="dest-list">
+              {destinations.map((d) => (
+                <label key={d.id} className={`dest-chip ${destinationIds.includes(d.id) ? 'dest-chip-active' : ''}`}>
+                  <input type="checkbox" checked={destinationIds.includes(d.id)}
+                    onChange={(e) => setDestinationIds((prev) => e.target.checked ? [...prev, d.id] : prev.filter((id) => id !== d.id))} />
+                  <span>{d.platform} - {d.name}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="field" style={{ marginBottom: 0 }}>
             <label htmlFor="file">ไฟล์วิดีโอ</label>
@@ -157,9 +168,9 @@ export default function UploadPage() {
             {templates.length > 0 && (
               <div className="tpl-bar">
                 {templates.map((tpl) => (
-                  <span key={tpl.name} className="tpl-chip">
+                  <span key={tpl.id} className="tpl-chip">
                     <button type="button" className="tpl-chip-btn" onClick={() => applyTemplate(tpl)}>{tpl.name}</button>
-                    <button type="button" className="tpl-chip-x" onClick={() => deleteTemplate(tpl.name)} aria-label={`ลบ ${tpl.name}`}>✕</button>
+                    <button type="button" className="tpl-chip-x" onClick={() => deleteTemplate(tpl.id)} aria-label={`ลบ ${tpl.name}`}>✕</button>
                   </span>
                 ))}
               </div>
@@ -212,7 +223,7 @@ export default function UploadPage() {
             {jobs.map((j, i) => (
               <div key={`${j.filename}-${i}`} className="job">
                 <div className="job-head">
-                  <span className="job-name">{j.filename}</span>
+                  <span className="job-name">{j.filename}{j.destination_name ? ` → ${j.destination_name}` : ''}</span>
                   <span className={`badge badge-${j.status === 'success' ? 'success' : j.status === 'failed' ? 'failed' : j.status === 'pending' ? 'pending' : 'uploading'}`}>
                     {JOB_LABEL[j.status] || j.status}
                   </span>
@@ -235,7 +246,7 @@ export default function UploadPage() {
         )}
 
         <button type="submit" disabled={uploading} className="btn btn-primary btn-block">
-          {uploading ? 'กำลังอัปโหลด...' : `เริ่มอัปโหลด (${tasks.length} รายการ)`}
+          {uploading ? 'กำลังอัปโหลด...' : `เริ่มอัปโหลด (${tasks.length * destinationIds.length} รายการ)`}
         </button>
       </form>
     </div>

@@ -382,6 +382,11 @@ h3 { font-size: 1.15rem; }
 .tpl-chip-x { padding: 4px 6px; font-size: 0.75rem; background: none; border: none; border-left: 1px solid var(--border); color: var(--faint); cursor: pointer; }
 .tpl-chip-x:hover { color: var(--danger); background: var(--danger-bg); }
 
+.dest-list { display: flex; gap: 8px; flex-wrap: wrap; }
+.dest-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-size: 0.9rem; }
+.dest-chip input { accent-color: var(--accent); }
+.dest-chip-active { border-color: var(--accent); background: var(--accent-soft); }
+
 .video-preview { width: 48px; height: 36px; object-fit: cover; border-radius: 4px; vertical-align: middle; margin-right: 8px; background: var(--surface-2); }
 .file-name { font-weight: 600; }
 

@@ -12,8 +12,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from .models import Destination, UploadJob
-from .serializers import DestinationSerializer, UploadJobSerializer, UploadCreateSerializer
+from .models import Destination, UploadJob, UploadTemplate
+from .serializers import DestinationSerializer, UploadJobSerializer, UploadCreateSerializer, UploadTemplateSerializer
 from .services.youtube import upload_to_youtube
 from .services.facebook import upload_to_facebook
 from .services.token_refresh import get_valid_access_token
@@ -72,6 +72,20 @@ class DestinationViewSet(viewsets.ModelViewSet):
         dest.is_active = False
         dest.updated_by = request.user
         dest.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class UploadTemplateViewSet(viewsets.ModelViewSet):
+    serializer_class = UploadTemplateSerializer
+
+    def get_queryset(self):
+        return UploadTemplate.objects.filter(created_by=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        self.get_object().delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

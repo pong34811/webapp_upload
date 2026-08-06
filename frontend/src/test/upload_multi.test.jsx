@@ -8,12 +8,18 @@ import UploadPage from '../pages/UploadPage'
 
 vi.mock('../api/client', () => ({
   destinationAPI: {
-    list: vi.fn().mockResolvedValue({ data: [{ id: 1, platform: 'youtube', name: 'Ch A' }] }),
+    list: vi.fn().mockResolvedValue({ data: [{ id: 1, platform: 'youtube', name: 'Ch A' }, { id: 2, platform: 'facebook', name: 'Page B' }] }),
   },
   uploadAPI: {
     create: vi.fn(),
     get: vi.fn().mockResolvedValue({ data: { status: 'success', progress: 100, error_message: '' } }),
     cancel: vi.fn(),
+  },
+  templateAPI: {
+    list: vi.fn().mockResolvedValue({ data: [] }),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
   },
   authAPI: {},
   oauthAPI: {},
@@ -30,6 +36,11 @@ function fileInput() {
   return form.querySelector('input[type=file]')
 }
 
+async function selectDest(user, label) {
+  await waitFor(() => screen.getAllByRole('checkbox').length >= 1)
+  await user.click(screen.getByLabelText(new RegExp(label)))
+}
+
 describe('UploadPage batch', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -41,7 +52,7 @@ describe('UploadPage batch', () => {
         <ToastContainer />
       </MemoryRouter>
     )
-    await waitFor(() => screen.getAllByRole('combobox').length >= 1)
+    await selectDest(user, 'youtube')
     await user.upload(fileInput(), fileList(['a.mp4', 'b.mp4', 'c.mp4']))
     expect(screen.getByText('a.mp4')).toBeInTheDocument()
     expect(screen.getByText('b.mp4')).toBeInTheDocument()
@@ -58,8 +69,7 @@ describe('UploadPage batch', () => {
         <ToastContainer />
       </MemoryRouter>
     )
-    await waitFor(() => screen.getAllByRole('combobox').length >= 1)
-    await user.selectOptions(screen.getAllByRole('combobox')[0], '1')
+    await selectDest(user, 'youtube')
     await user.upload(fileInput(), fileList(['a.mp4', 'b.mp4']))
     // กรอก title ต่างกันต่อ task (table รายบรรทัด)
     const titleInputs = screen.getAllByPlaceholderText('ใช้ชื่อไฟล์')
@@ -74,6 +84,25 @@ describe('UploadPage batch', () => {
     expect(formData2.get('title')).toBe('Video B')
   })
 
+  it('creates one job per destination when multiple channels selected', async () => {
+    uploadAPI.create.mockResolvedValue({ data: { id: 99, status: 'pending' } })
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <UploadPage />
+        <ToastContainer />
+      </MemoryRouter>
+    )
+    await selectDest(user, 'youtube')
+    await selectDest(user, 'facebook')
+    await user.upload(fileInput(), fileList(['a.mp4']))
+    await user.click(screen.getByRole('button', { name: 'เริ่มอัปโหลด (2 รายการ)' }))
+
+    await waitFor(() => expect(uploadAPI.create).toHaveBeenCalledTimes(2))
+    expect(uploadAPI.create.mock.calls[0][0].get('destination_id')).toBe('1')
+    expect(uploadAPI.create.mock.calls[1][0].get('destination_id')).toBe('2')
+  })
+
   it('removes a task from the batch', async () => {
     const user = userEvent.setup()
     render(
@@ -82,7 +111,7 @@ describe('UploadPage batch', () => {
         <ToastContainer />
       </MemoryRouter>
     )
-    await waitFor(() => screen.getAllByRole('combobox').length >= 1)
+    await selectDest(user, 'youtube')
     await user.upload(fileInput(), fileList(['a.mp4', 'b.mp4']))
     const removeButtons = screen.getAllByRole('button', { name: /ลบ/ })
     await user.click(removeButtons[0])

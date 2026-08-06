@@ -12,6 +12,7 @@ vi.mock('../api/client', async () => {
   const actual = await vi.importActual('../api/client')
   return {
     ...actual,
+    destinationAPI: { ...actual.destinationAPI, list: vi.fn().mockResolvedValue({ data: [] }) },
     oauthAPI: { start: vi.fn() },
     authAPI: { ...actual.authAPI, me: vi.fn().mockResolvedValue({ data: { username: 'admin' } }) },
   }

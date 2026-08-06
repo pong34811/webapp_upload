@@ -28,6 +28,22 @@ class Destination(models.Model):
         return f"{self.platform}: {self.name}"
 
 
+class UploadTemplate(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    tags = models.TextField(blank=True, default="")
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="upload_templates")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = ["created_by", "name"]
+
+    def __str__(self):
+        return self.name
+
+
 class UploadJob(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
