@@ -6,14 +6,15 @@ import { MemoryRouter } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import SettingsPage from '../pages/SettingsPage'
-import { oauthAPI } from '../api/client'
+import { oauthAPI, facebookAPI } from '../api/client'
 
 vi.mock('../api/client', async () => {
   const actual = await vi.importActual('../api/client')
   return {
     ...actual,
     destinationAPI: { ...actual.destinationAPI, list: vi.fn().mockResolvedValue({ data: [] }) },
-    oauthAPI: { start: vi.fn(), fbStart: vi.fn() },
+    oauthAPI: { start: vi.fn() },
+    facebookAPI: { extend: vi.fn().mockResolvedValue({ data: { destinations: [1] } }) },
     authAPI: { ...actual.authAPI, me: vi.fn().mockResolvedValue({ data: { username: 'admin' } }) },
   }
 })
@@ -56,16 +57,14 @@ describe('SettingsPage OAuth connect', () => {
     })
   })
 
-  it('opens the Facebook dialog when clicking connect facebook', async () => {
-    oauthAPI.fbStart.mockResolvedValue({ data: { auth_url: 'https://facebook.com/dialog' } })
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => ({}))
+  it('extends the Facebook token and shows success', async () => {
     const user = userEvent.setup()
     renderPage()
+    await user.type(screen.getByPlaceholderText(/วาง Facebook Token/), 'EAAxxx')
     await user.click(screen.getByRole('button', { name: 'เชื่อมต่อ Facebook' }))
     await waitFor(() => {
-      expect(oauthAPI.fbStart).toHaveBeenCalled()
-      expect(openSpy).toHaveBeenCalledWith('https://facebook.com/dialog', '_blank', expect.any(String))
+      expect(facebookAPI.extend).toHaveBeenCalledWith('EAAxxx')
+      expect(screen.getByText('เชื่อมต่อ Facebook สำเร็จ (1 Page)')).toBeInTheDocument()
     })
-    openSpy.mockRestore()
   })
 })

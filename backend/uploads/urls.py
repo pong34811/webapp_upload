@@ -13,7 +13,6 @@ urlpatterns = [
     path("auth/me/", views.api_me, name="api_me"),
     path("oauth/youtube/start/", views.oauth_youtube_start, name="oauth_start"),
     path("oauth/youtube/callback/", views.oauth_youtube_callback, name="oauth_callback"),
-    path("oauth/facebook/start/", views.oauth_facebook_start, name="oauth_fb_start"),
-    path("oauth/facebook/callback/", views.oauth_facebook_callback, name="oauth_fb_callback"),
+    path("oauth/facebook/extend/", views.facebook_extend_token, name="oauth_fb_extend"),
     path("", include(router.urls)),
 ]

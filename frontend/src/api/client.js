@@ -43,7 +43,10 @@ export const destinationAPI = {
 
 export const oauthAPI = {
   start: () => api.get('/oauth/youtube/start/'),
-  fbStart: () => api.get('/oauth/facebook/start/'),
+}
+
+export const facebookAPI = {
+  extend: (token) => api.post('/oauth/facebook/extend/', { access_token: token }),
 }
 
 export const uploadAPI = {

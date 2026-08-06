@@ -269,16 +269,6 @@ def oauth_youtube_callback(request):
     return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
 
 
-def oauth_facebook_start(request):
-    state = secrets.token_urlsafe(16)
-    request.session["oauth_fb_state"] = state
-    try:
-        auth_url = facebook_oauth.build_auth_url(state)
-    except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=400)
-    return JsonResponse({"auth_url": auth_url})
-
-
 def _find_or_create_facebook_destination(page, cfg, user):
     dest = Destination.objects.filter(platform="facebook", page_id=str(page["id"])).first()
     if dest is None:
@@ -292,25 +282,34 @@ def _find_or_create_facebook_destination(page, cfg, user):
     return dest
 
 
-def oauth_facebook_callback(request):
-    state = request.GET.get("state", "")
-    code = request.GET.get("code", "")
-    expected = request.session.get("oauth_fb_state", "")
-    user = request.user if request.user.is_authenticated else None
-
-    if not code or not expected or state != expected:
-        result_payload = {"type": "oauth-error", "message": "state ไม่ตรงกัน"}
-        return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
+def facebook_extend_token(request):
+    # body: {"access_token": "<user or page token>"}
+    # extends it to a long-lived (~60 day) token and upserts the Page destination
+    if request.method != "POST":
+        return JsonResponse({"error": "method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body.decode()) if request.body else {}
+    except Exception:
+        data = {}
+    raw = data.get("access_token", "")
+    if not raw:
+        return JsonResponse({"error": "missing access_token"}, status=400)
 
     try:
-        user_token = facebook_oauth.exchange_code_for_user_token(code)
-        pages = facebook_oauth.fetch_pages(user_token)
         cfg = facebook_oauth._config()
+        long_token = facebook_oauth.extend_token(cfg, raw)
+        user = request.user if request.user.is_authenticated else None
+        created = []
+        try:
+            pages = facebook_oauth.fetch_pages(long_token)
+        except ValueError:
+            page = facebook_oauth.fetch_page_from_token(long_token)
+            pages = [{"id": page["id"], "name": page.get("name", ""), "access_token": long_token}]
         for page in pages:
-            _find_or_create_facebook_destination(page, cfg, user)
+            dest = _find_or_create_facebook_destination(page, cfg, user)
+            created.append(dest.id)
     except Exception as e:
-        result_payload = {"type": "oauth-error", "message": str(e)}
-        return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
-    result_payload = {"type": "oauth-success"}
-    return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
+        return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse({"message": "ok", "destinations": created})
 

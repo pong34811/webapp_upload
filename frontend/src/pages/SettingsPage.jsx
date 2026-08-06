@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
-import { destinationAPI, oauthAPI } from '../api/client'
+import { destinationAPI, oauthAPI, facebookAPI } from '../api/client'
 import DestinationForm from '../components/DestinationForm'
 
 export default function SettingsPage() {
   const [destinations, setDestinations] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [connecting, setConnecting] = useState('')
+  const [connecting, setConnecting] = useState(false)
+  const [fbToken, setFbToken] = useState('')
+  const [fbBusy, setFbBusy] = useState(false)
 
   const load = async () => {
     const res = await destinationAPI.list()
@@ -20,25 +22,40 @@ export default function SettingsPage() {
     const onMsg = (e) => {
       if (e.origin !== window.location.origin) return
       if (e.data?.type === 'oauth-success') {
-        toast.success(connecting === 'facebook' ? 'เชื่อมต่อ Facebook สำเร็จ' : 'เชื่อมต่อ YouTube สำเร็จ')
+        toast.success('เชื่อมต่อ YouTube สำเร็จ')
         load()
       } else if (e.data?.type === 'oauth-error') {
         toast.error('เชื่อมต่อล้มเหลว: ' + (e.data.message || ''))
       }
-      setConnecting('')
+      setConnecting(false)
     }
     window.addEventListener('message', onMsg)
     return () => window.removeEventListener('message', onMsg)
-  }, [connecting])
+  }, [])
 
-  const handleConnect = async (provider) => {
-    setConnecting(provider)
+  const handleConnect = async () => {
+    setConnecting(true)
     try {
-      const res = provider === 'facebook' ? await oauthAPI.fbStart() : await oauthAPI.start()
+      const res = await oauthAPI.start()
       window.open(res.data.auth_url, '_blank', 'width=600,height=700')
     } catch {
       toast.error('ไม่สามารถเริ่มการเชื่อมต่อได้')
-      setConnecting('')
+      setConnecting(false)
+    }
+  }
+
+  const handleFbConnect = async () => {
+    if (!fbToken.trim()) { toast.error('กรุณาวาง Token'); return }
+    setFbBusy(true)
+    try {
+      const res = await facebookAPI.extend(fbToken.trim())
+      toast.success(`เชื่อมต่อ Facebook สำเร็จ (${res.data.destinations.length} Page)`)
+      setFbToken('')
+      load()
+    } catch (e) {
+      toast.error('เชื่อมต่อไม่สำเร็จ: ' + (e.response?.data?.error || 'ลองอีกครั้ง'))
+    } finally {
+      setFbBusy(false)
     }
   }
 
@@ -71,13 +88,23 @@ export default function SettingsPage() {
       <div className="page-head">
         <h2 className="page-title">จัดการตั้งค่าช่องทาง</h2>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-ghost" onClick={() => handleConnect('youtube')} disabled={connecting}>
-            {connecting === 'youtube' ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
-          </button>
-          <button className="btn btn-ghost" onClick={() => handleConnect('facebook')} disabled={connecting}>
-            {connecting === 'facebook' ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ Facebook'}
+          <button className="btn btn-ghost" onClick={handleConnect} disabled={connecting}>
+            {connecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
           </button>
           <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>เพิ่ม</button>
+        </div>
+      </div>
+
+      <div className="card card-pad" style={{ marginBottom: 20 }}>
+        <h3 style={{ marginBottom: 8 }}>เชื่อมต่อ Facebook (Page)</h3>
+        <p style={{ margin: '0 0 10px', color: 'var(--muted)', fontSize: '0.9rem' }}>
+          วาง <strong>User Token หรือ Page Token</strong> ระบบจะยืดอายุให้เป็น ~60 วัน แล้วบันทึก Page ให้อัตโนมัติ (ใช้ได้เฉพาะ local PC ไม่ต้อง HTTPS)
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input className="input" placeholder="วาง Facebook Token ตรงนี้..." value={fbToken} onChange={(e) => setFbToken(e.target.value)} />
+          <button className="btn btn-primary" onClick={handleFbConnect} disabled={fbBusy} style={{ whiteSpace: 'nowrap' }}>
+            {fbBusy ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ Facebook'}
+          </button>
         </div>
       </div>
       {destinations.length === 0 ? (
