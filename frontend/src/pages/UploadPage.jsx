@@ -107,7 +107,7 @@ export default function UploadPage() {
   const handleRetry = async (id) => {
     try {
       const res = await uploadAPI.retry(id)
-      setJobs((prev) => prev.map((j) => j.id === id ? { ...j, status: res.data.status, progress: 0, error_message: '' } : j))
+      setJobs((prev) => prev.map((j) => j.id === id ? { ...j, id: res.data.id, status: res.data.status, progress: 0, error_message: '' } : j))
       setUploading(true)
       toast.success('ลองใหม่แล้ว')
     } catch { toast.error('ลองใหม่ไม่สำเร็จ') }

@@ -1,8 +1,10 @@
 from unittest import mock
+import os
 from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from uploads.models import Destination, UploadJob
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 
 class AuthTest(TestCase):
@@ -117,3 +119,23 @@ class UploadJobTest(TestCase):
         self.assertTrue(refresh_mock.called)
         job.refresh_from_db()
         self.assertEqual(job.status, "success")
+
+    def test_create_gives_each_job_a_unique_file_path(self):
+        # multi-destination: same file uploaded twice must not share a path,
+        # or the first finished job deletes the file out from under the second
+        with mock.patch("threading.Thread.start"):
+            res1 = self.client.post("/api/uploads/", {
+                "destination_id": self.dest.id, "title": "V", "file": SimpleUploadedFile("a.mp4", b"abc"),
+            }, format="multipart")
+            res2 = self.client.post("/api/uploads/", {
+                "destination_id": self.dest.id, "title": "V", "file": SimpleUploadedFile("a.mp4", b"abc"),
+            }, format="multipart")
+        self.assertEqual(res1.status_code, 201)
+        self.assertEqual(res2.status_code, 201)
+        p1 = UploadJob.objects.get(id=res1.data["id"]).file_path
+        p2 = UploadJob.objects.get(id=res2.data["id"]).file_path
+        self.assertNotEqual(p1, p2)
+        self.assertTrue(os.path.exists(p1))
+        self.assertTrue(os.path.exists(p2))
+        os.remove(p1)
+        os.remove(p2)

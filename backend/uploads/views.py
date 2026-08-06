@@ -2,6 +2,7 @@ import os
 import json
 import secrets
 import threading
+import uuid
 from pathlib import Path
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse
@@ -115,7 +116,9 @@ class UploadViewSet(viewsets.ModelViewSet):
         if uploaded_file.size > settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
             return Response({"error": "file too large"}, status=400)
 
-        save_path = settings.UPLOAD_DIR / uploaded_file.name
+        # unique name so concurrent jobs / same-named files never share a path
+        # (each job deletes its own file on success)
+        save_path = settings.UPLOAD_DIR / f"{uuid.uuid4().hex}_{uploaded_file.name}"
         with open(save_path, "wb+") as f:
             for chunk in uploaded_file.chunks():
                 f.write(chunk)

@@ -14,6 +14,7 @@ vi.mock('../api/client', () => ({
     create: vi.fn(),
     get: vi.fn().mockResolvedValue({ data: { status: 'success', progress: 100, error_message: '' } }),
     cancel: vi.fn(),
+    retry: vi.fn(),
   },
   templateAPI: {
     list: vi.fn().mockResolvedValue({ data: [] }),
@@ -101,6 +102,25 @@ describe('UploadPage batch', () => {
     await waitFor(() => expect(uploadAPI.create).toHaveBeenCalledTimes(2))
     expect(uploadAPI.create.mock.calls[0][0].get('destination_id')).toBe('1')
     expect(uploadAPI.create.mock.calls[1][0].get('destination_id')).toBe('2')
+  })
+
+  it('retry switches the job to the new job id so polling follows it', async () => {
+    uploadAPI.create.mockRejectedValue({ response: { data: { error: 'boom' } } })
+    uploadAPI.retry.mockResolvedValue({ data: { id: 200, status: 'uploading', progress: 0, error_message: '' } })
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <UploadPage />
+        <ToastContainer />
+      </MemoryRouter>
+    )
+    await selectDest(user, 'youtube')
+    await user.upload(fileInput(), fileList(['a.mp4']))
+    await user.click(screen.getByRole('button', { name: /เริ่มอัปโหลด/ }))
+    await waitFor(() => expect(screen.getByText('ลองใหม่')).toBeInTheDocument())
+    await user.click(screen.getByText('ลองใหม่'))
+    await waitFor(() => expect(screen.queryByText('ลองใหม่')).not.toBeInTheDocument())
+    expect(screen.getByText('กำลังอัปโหลด')).toBeInTheDocument()
   })
 
   it('removes a task from the batch', async () => {
