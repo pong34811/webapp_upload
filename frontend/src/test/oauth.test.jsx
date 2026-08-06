@@ -13,7 +13,7 @@ vi.mock('../api/client', async () => {
   return {
     ...actual,
     destinationAPI: { ...actual.destinationAPI, list: vi.fn().mockResolvedValue({ data: [] }) },
-    oauthAPI: { start: vi.fn() },
+    oauthAPI: { start: vi.fn(), fbStart: vi.fn() },
     authAPI: { ...actual.authAPI, me: vi.fn().mockResolvedValue({ data: { username: 'admin' } }) },
   }
 })
@@ -54,5 +54,18 @@ describe('SettingsPage OAuth connect', () => {
     await waitFor(() => {
       expect(screen.getByText('เชื่อมต่อ YouTube สำเร็จ')).toBeInTheDocument()
     })
+  })
+
+  it('opens the Facebook dialog when clicking connect facebook', async () => {
+    oauthAPI.fbStart.mockResolvedValue({ data: { auth_url: 'https://facebook.com/dialog' } })
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => ({}))
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: 'เชื่อมต่อ Facebook' }))
+    await waitFor(() => {
+      expect(oauthAPI.fbStart).toHaveBeenCalled()
+      expect(openSpy).toHaveBeenCalledWith('https://facebook.com/dialog', '_blank', expect.any(String))
+    })
+    openSpy.mockRestore()
   })
 })

@@ -7,7 +7,7 @@ export default function SettingsPage() {
   const [destinations, setDestinations] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [connecting, setConnecting] = useState(false)
+  const [connecting, setConnecting] = useState('')
 
   const load = async () => {
     const res = await destinationAPI.list()
@@ -20,25 +20,25 @@ export default function SettingsPage() {
     const onMsg = (e) => {
       if (e.origin !== window.location.origin) return
       if (e.data?.type === 'oauth-success') {
-        toast.success('เชื่อมต่อ YouTube สำเร็จ')
+        toast.success(connecting === 'facebook' ? 'เชื่อมต่อ Facebook สำเร็จ' : 'เชื่อมต่อ YouTube สำเร็จ')
         load()
       } else if (e.data?.type === 'oauth-error') {
         toast.error('เชื่อมต่อล้มเหลว: ' + (e.data.message || ''))
       }
-      setConnecting(false)
+      setConnecting('')
     }
     window.addEventListener('message', onMsg)
     return () => window.removeEventListener('message', onMsg)
-  }, [])
+  }, [connecting])
 
-  const handleConnect = async () => {
-    setConnecting(true)
+  const handleConnect = async (provider) => {
+    setConnecting(provider)
     try {
-      const res = await oauthAPI.start()
+      const res = provider === 'facebook' ? await oauthAPI.fbStart() : await oauthAPI.start()
       window.open(res.data.auth_url, '_blank', 'width=600,height=700')
     } catch {
       toast.error('ไม่สามารถเริ่มการเชื่อมต่อได้')
-      setConnecting(false)
+      setConnecting('')
     }
   }
 
@@ -71,8 +71,11 @@ export default function SettingsPage() {
       <div className="page-head">
         <h2 className="page-title">จัดการตั้งค่าช่องทาง</h2>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-ghost" onClick={handleConnect} disabled={connecting}>
-            {connecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
+          <button className="btn btn-ghost" onClick={() => handleConnect('youtube')} disabled={connecting}>
+            {connecting === 'youtube' ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
+          </button>
+          <button className="btn btn-ghost" onClick={() => handleConnect('facebook')} disabled={connecting}>
+            {connecting === 'facebook' ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ Facebook'}
           </button>
           <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>เพิ่ม</button>
         </div>

@@ -18,7 +18,7 @@ from .serializers import DestinationSerializer, UploadJobSerializer, UploadCreat
 from .services.youtube import upload_to_youtube
 from .services.facebook import upload_to_facebook
 from .services.token_refresh import get_valid_access_token
-from .services import youtube_oauth
+from .services import youtube_oauth, facebook_oauth
 from django.shortcuts import render
 from providers.models import YouTubeConfig
 
@@ -263,6 +263,52 @@ def oauth_youtube_callback(request):
         return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
     except Exception as e:
         logger.error(f"OAuth error: {e}")
+        result_payload = {"type": "oauth-error", "message": str(e)}
+        return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
+    result_payload = {"type": "oauth-success"}
+    return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
+
+
+def oauth_facebook_start(request):
+    state = secrets.token_urlsafe(16)
+    request.session["oauth_fb_state"] = state
+    try:
+        auth_url = facebook_oauth.build_auth_url(state)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"auth_url": auth_url})
+
+
+def _find_or_create_facebook_destination(page, cfg, user):
+    dest = Destination.objects.filter(platform="facebook", page_id=str(page["id"])).first()
+    if dest is None:
+        dest = Destination(platform="facebook", page_id=str(page["id"]), created_by=user, updated_by=user)
+    dest.name = page["name"]
+    dest.access_token = page.get("access_token", "")
+    dest.client_id = cfg.client_id
+    dest.client_secret = cfg.client_secret
+    dest.is_active = True
+    dest.save()
+    return dest
+
+
+def oauth_facebook_callback(request):
+    state = request.GET.get("state", "")
+    code = request.GET.get("code", "")
+    expected = request.session.get("oauth_fb_state", "")
+    user = request.user if request.user.is_authenticated else None
+
+    if not code or not expected or state != expected:
+        result_payload = {"type": "oauth-error", "message": "state ไม่ตรงกัน"}
+        return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
+
+    try:
+        user_token = facebook_oauth.exchange_code_for_user_token(code)
+        pages = facebook_oauth.fetch_pages(user_token)
+        cfg = facebook_oauth._config()
+        for page in pages:
+            _find_or_create_facebook_destination(page, cfg, user)
+    except Exception as e:
         result_payload = {"type": "oauth-error", "message": str(e)}
         return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
     result_payload = {"type": "oauth-success"}

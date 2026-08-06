@@ -43,6 +43,7 @@ export const destinationAPI = {
 
 export const oauthAPI = {
   start: () => api.get('/oauth/youtube/start/'),
+  fbStart: () => api.get('/oauth/facebook/start/'),
 }
 
 export const uploadAPI = {

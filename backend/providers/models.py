@@ -19,3 +19,16 @@ class YouTubeConfig(BaseProviderConfig):
 
     def __str__(self):
         return f"YouTube Config ({self.client_id})"
+
+
+class FacebookConfig(BaseProviderConfig):
+    client_id = models.CharField(max_length=255, help_text="Facebook App ID")
+    client_secret = models.TextField(help_text="Facebook App Secret")
+    redirect_uri = models.URLField(help_text="Facebook OAuth Redirect URI")
+
+    class Meta:
+        verbose_name = "Facebook Configuration"
+        verbose_name_plural = "Facebook Configurations"
+
+    def __str__(self):
+        return f"Facebook Config ({self.client_id})"
