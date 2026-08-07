@@ -188,8 +188,9 @@ def _process_upload(job_id):
                 job.privacy, access_token, job.scheduled_time,
             )
         elif dest.platform == "facebook":
+            fb_description = f"{job.title}\n-----------------\n{job.description}" if job.description else job.title
             video_id = upload_to_facebook(
-                job.file_path, job.title, job.description,
+                job.file_path, job.title, fb_description,
                 access_token, dest.page_id, job.scheduled_time,
             )
         else:
