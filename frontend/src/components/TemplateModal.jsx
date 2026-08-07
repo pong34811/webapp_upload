@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 import { templateAPI } from '../api/client'
 
@@ -7,6 +7,15 @@ export default function TemplateModal({ open, mode, initial, templates, onSaved,
   const [title, setTitle] = useState(initial?.title || '')
   const [description, setDescription] = useState(initial?.description || '')
   const [tags, setTags] = useState(initial?.tags || '')
+
+  useEffect(() => {
+    if (open) {
+      setName(initial?.name || '')
+      setTitle(initial?.title || '')
+      setDescription(initial?.description || '')
+      setTags(initial?.tags || '')
+    }
+  }, [open, initial])
 
   if (!open) return null
 
