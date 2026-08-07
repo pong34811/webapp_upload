@@ -14,6 +14,7 @@ class Destination(models.Model):
     client_id = models.CharField(max_length=255, blank=True, default="")
     client_secret = models.TextField(blank=True, default="")
     refresh_token = models.TextField(blank=True, default="")
+    token_expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="destinations_created")
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="destinations_updated")

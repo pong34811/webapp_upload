@@ -46,7 +46,8 @@ def extend_token(cfg, token):
     long_token = data.get("access_token")
     if not long_token:
         raise ValueError("ยืดอายุ token ไม่สำเร็จ: " + str(data))
-    return long_token
+    expires_in = data.get("expires_in")
+    return long_token, expires_in
 
 
 def fetch_pages(user_token):

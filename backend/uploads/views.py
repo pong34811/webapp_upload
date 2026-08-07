@@ -1,9 +1,5 @@
-import os
-import json
-import secrets
-import threading
-import uuid
-from pathlib import Path
+from django.utils import timezone
+from datetime import timedelta
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse
 from rest_framework import viewsets, status
@@ -235,6 +231,9 @@ def _find_or_create_youtube_destination(title, tokens, cfg, user):
     dest.client_secret = cfg.client_secret
     dest.page_id = ""
     dest.is_active = True
+    expires_in = tokens.get("expires_in")
+    if expires_in:
+        dest.token_expires_at = timezone.now() + timedelta(seconds=int(expires_in))
     dest.save()
     return dest
 
@@ -270,7 +269,7 @@ def oauth_youtube_callback(request):
     return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
 
 
-def _find_or_create_facebook_destination(page, cfg, user):
+def _find_or_create_facebook_destination(page, cfg, user, expires_in=None):
     dest = Destination.objects.filter(platform="facebook", page_id=str(page["id"])).first()
     if dest is None:
         dest = Destination(platform="facebook", page_id=str(page["id"]), created_by=user, updated_by=user)
@@ -279,6 +278,8 @@ def _find_or_create_facebook_destination(page, cfg, user):
     dest.client_id = cfg.client_id
     dest.client_secret = cfg.client_secret
     dest.is_active = True
+    if expires_in:
+        dest.token_expires_at = timezone.now() + timedelta(seconds=int(expires_in))
     dest.save()
     return dest
 
@@ -309,7 +310,7 @@ def facebook_extend_token(request):
 
     try:
         cfg = facebook_oauth._config()
-        long_token = facebook_oauth.extend_token(cfg, raw)
+        long_token, expires_in = facebook_oauth.extend_token(cfg, raw)
         user = request.user if request.user.is_authenticated else None
         created = []
         try:
@@ -318,7 +319,7 @@ def facebook_extend_token(request):
             page = facebook_oauth.fetch_page_from_token(long_token)
             pages = [{"id": page["id"], "name": page.get("name", ""), "access_token": long_token}]
         for page in pages:
-            dest = _find_or_create_facebook_destination(page, cfg, user)
+            dest = _find_or_create_facebook_destination(page, cfg, user, expires_in)
             created.append(dest.id)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)

@@ -111,6 +111,7 @@ export default function SettingsPage() {
                 <th>แพลตฟอร์ม</th>
                 <th>ชื่อ</th>
                 <th>Token</th>
+                <th>หมดอายุ</th>
                 <th>อัปเดตล่าสุด</th>
                 <th>สร้างเมื่อ</th>
                 <th style={{ textAlign: 'right' }}>การจัดการ</th>
@@ -122,6 +123,9 @@ export default function SettingsPage() {
                   <td>{d.platform}</td>
                   <td className="cell-title">{d.name}</td>
                   <td className="cell-mono">{String(d.access_token).slice(0, 20)}...</td>
+                  <td className="cell-muted">
+                    {d.token_expires_at ? new Date(d.token_expires_at).toLocaleString('th-TH') : 'ไม่มีวันหยุดอายุ'}
+                  </td>
                   <td className="cell-muted">{new Date(d.updated_at).toLocaleString('th-TH')}</td>
                   <td className="cell-muted">{new Date(d.created_at).toLocaleString('th-TH')}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
