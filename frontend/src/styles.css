@@ -397,12 +397,12 @@ h3 { font-size: 1.15rem; }
 }
 .code { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); font-family: ui-monospace, Consolas, monospace; font-size: 0.85rem; color: var(--accent); }
 
-.modal-overlay {
+.tpl-modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center; z-index: 1000;
 }
-.modal {
+.tpl-modal {
   background: #fff; border-radius: 8px; padding: 24px; width: 480px; max-width: 90vw; max-height: 90vh; overflow-y: auto;
 }
-.modal-title { margin: 0 0 16px; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.tpl-modal-title { margin: 0 0 16px; }
+.tpl-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }

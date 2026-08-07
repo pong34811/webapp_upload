@@ -24,9 +24,9 @@ export default function TemplateModal({ open, mode, initial, templates, onSaved,
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3 className="modal-title">{mode === 'edit' ? 'แก้ไขเทมเพลต' : 'บันทึกเทมเพลต'}</h3>
+    <div className="tpl-modal-overlay" onClick={onClose}>
+      <div className="tpl-modal" onClick={(e) => e.stopPropagation()}>
+        <h3 className="tpl-modal-title">{mode === 'edit' ? 'แก้ไขเทมเพลต' : 'บันทึกเทมเพลต'}</h3>
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label htmlFor="tpl-name">ชื่อเทมเพลต</label>
@@ -44,7 +44,7 @@ export default function TemplateModal({ open, mode, initial, templates, onSaved,
             <label htmlFor="tpl-tags">แท็ก</label>
             <textarea id="tpl-tags" className="textarea" rows={3} value={tags} onChange={(e) => setTags(e.target.value)} />
           </div>
-          <div className="modal-actions">
+          <div className="tpl-modal-actions">
             <button type="button" className="btn btn-ghost" onClick={onClose}>ยกเลิก</button>
             <button type="submit" className="btn btn-primary">บันทึก</button>
           </div>
