@@ -40,7 +40,7 @@ export default function TemplatesPage() {
                 <th>คำอธิบาย</th>
                 <th>แท็ก</th>
                 <th>สร้างเมื่อ</th>
-                <th style={{ width: 88 }}></th>
+                <th style={{ width: 88 }}>การจัดการ</th>
               </tr>
             </thead>
             <tbody>
