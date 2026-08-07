@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'react-toastify'
 import { destinationAPI, uploadAPI, templateAPI } from '../api/client'
 import ProgressBar from '../components/ProgressBar'
+import TemplateModal from '../components/TemplateModal'
 
 const ACTIVE = ['pending', 'uploading']
 const JOB_LABEL = { pending: 'รอดำเนินการ', uploading: 'กำลังอัปโหลด', success: 'สำเร็จ', failed: 'ล้มเหลว' }
@@ -15,9 +16,9 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [templates, setTemplates] = useState([])
-  const [tplName, setTplName] = useState('')
-  const [tplDesc, setTplDesc] = useState('')
-  const [tplTags, setTplTags] = useState('')
+  const [tplModalOpen, setTplModalOpen] = useState(false)
+  const [tplModalMode, setTplModalMode] = useState('create')
+  const [tplModalInitial, setTplModalInitial] = useState(null)
   const fileRef = useRef(null)
   const dragCounter = useRef(0)
 
@@ -58,24 +59,31 @@ export default function UploadPage() {
 
   // Templates
   const applyTemplate = (tpl) => {
-    setTasks((prev) => prev.map((t) => ({ ...t, description: tpl.description || t.description, tags: tpl.tags || t.tags })))
+    setTasks((prev) => prev.map((t) => ({
+      ...t,
+      title: tpl.title || t.title,
+      description: tpl.description || t.description,
+      tags: tpl.tags || t.tags,
+    })))
     toast.success(`ใช้เทมเพลต: ${tpl.name}`)
-  }
-  const saveAsTemplate = async () => {
-    if (!tplName.trim()) { toast.error('กรุณาใส่ชื่อเทมเพลต'); return }
-    const existing = templates.find((t) => t.name === tplName.trim())
-    const payload = { name: tplName.trim(), description: tplDesc, tags: tplTags }
-    try {
-      const res = existing ? await templateAPI.update(existing.id, payload) : await templateAPI.create(payload)
-      setTemplates((prev) => [...prev.filter((t) => t.id !== res.data.id), res.data])
-      setTplName(''); setTplDesc(''); setTplTags(''); toast.success('บันทึกเทมเพลตแล้ว')
-    } catch { toast.error('บันทึกเทมเพลตไม่สำเร็จ') }
   }
   const deleteTemplate = async (id) => {
     try {
       await templateAPI.remove(id)
       setTemplates((prev) => prev.filter((t) => t.id !== id))
     } catch { toast.error('ลบเทมเพลตไม่สำเร็จ') }
+  }
+
+  const openTplModal = (tpl = null) => {
+    const first = tasks[0] || {}
+    setTplModalMode(tpl ? 'edit' : 'create')
+    setTplModalInitial(tpl || { name: '', title: first.title || '', description: first.description || '', tags: first.tags || '' })
+    setTplModalOpen(true)
+  }
+
+  const handleTplSaved = (saved) => {
+    setTemplates((prev) => [...prev.filter((t) => t.id !== saved.id), saved])
+    setTplModalOpen(false)
   }
 
   const handleSubmit = async (e) => {
@@ -161,8 +169,7 @@ export default function UploadPage() {
               </select>
               <input className="input input-sm" placeholder="แท็ก (ตั้งค่าทั้งหมด)" onBlur={(e) => { if (e.target.value) bulkTags(e.target.value) }} onKeyDown={(e) => { if (e.key === 'Enter') { bulkTags(e.target.value); e.target.blur() } }} />
               <span className="bulk-sep" />
-              <input className="input input-sm" placeholder="ชื่อเทมเพลต" value={tplName} onChange={(e) => setTplName(e.target.value)} />
-              <button type="button" className="btn btn-ghost btn-sm" onClick={saveAsTemplate}>บันทึกเทมเพลต</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => openTplModal()}>บันทึกเทมเพลต</button>
             </div>
 
             {templates.length > 0 && (
@@ -170,11 +177,21 @@ export default function UploadPage() {
                 {templates.map((tpl) => (
                   <span key={tpl.id} className="tpl-chip">
                     <button type="button" className="tpl-chip-btn" onClick={() => applyTemplate(tpl)}>{tpl.name}</button>
+                    <button type="button" className="tpl-chip-x" onClick={() => openTplModal(tpl)} aria-label={`แก้ไข ${tpl.name}`}>✎</button>
                     <button type="button" className="tpl-chip-x" onClick={() => deleteTemplate(tpl.id)} aria-label={`ลบ ${tpl.name}`}>✕</button>
                   </span>
                 ))}
               </div>
             )}
+
+            <TemplateModal
+              open={tplModalOpen}
+              mode={tplModalMode}
+              initial={tplModalInitial}
+              templates={templates}
+              onSaved={handleTplSaved}
+              onClose={() => setTplModalOpen(false)}
+            />
 
             <div className="table-wrap" style={{ marginBottom: 20 }}>
               <table className="table">

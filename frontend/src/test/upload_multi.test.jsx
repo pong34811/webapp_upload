@@ -26,7 +26,7 @@ vi.mock('../api/client', () => ({
   oauthAPI: {},
 }))
 
-import { uploadAPI } from '../api/client'
+import { uploadAPI, templateAPI } from '../api/client'
 
 function fileList(names) {
   return names.map((n) => new File(['x'.repeat(4)], n, { type: 'video/mp4' }))
@@ -137,5 +137,24 @@ describe('UploadPage batch', () => {
     await user.click(removeButtons[0])
     expect(screen.queryByText('a.mp4')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'เริ่มอัปโหลด (1 รายการ)' })).toBeInTheDocument()
+  })
+
+  it('applyTemplate fills title, description and tags into tasks', async () => {
+    const tpl = { id: 5, name: 'Kpop', title: 'T', description: 'D', tags: 'G' }
+    templateAPI.list.mockResolvedValue({ data: [tpl] })
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <UploadPage />
+        <ToastContainer />
+      </MemoryRouter>
+    )
+    await selectDest(user, 'youtube')
+    await user.upload(fileInput(), fileList(['a.mp4']))
+    const chips = screen.getAllByRole('button', { name: /Kpop/ })
+    await user.click(chips[0])
+    expect(screen.getByPlaceholderText('ใช้ชื่อไฟล์')).toHaveValue('T')
+    expect(screen.getByPlaceholderText('คำอธิบาย')).toHaveValue('D')
+    expect(screen.getByPlaceholderText('แท็ก')).toHaveValue('G')
   })
 })
