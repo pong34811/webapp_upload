@@ -7,6 +7,9 @@ SECRET_KEY = "dev-secret-key-change-in-production"
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
+# Frontend SPA origin (Vite dev server). Used for OAuth redirect_uri targets.
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",

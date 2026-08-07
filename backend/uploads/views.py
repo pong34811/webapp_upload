@@ -284,8 +284,9 @@ def _find_or_create_facebook_destination(page, cfg, user):
 
 def facebook_auth_url(request):
     # returns the d/dialog URL for the implicit token flow (popup)
+    # redirect_uri must target the SPA (facebook-token page), not django build_absolute_uri
     try:
-        redirect_uri = request.build_absolute_uri("/facebook-token/")
+        redirect_uri = f"{settings.FRONTEND_URL.rstrip('/')}/facebook-token/"
         auth_url = facebook_oauth.build_implicit_auth_url(redirect_uri)
     except ValueError as e:
         return JsonResponse({"error": str(e)}, status=400)

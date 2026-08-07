@@ -92,18 +92,11 @@ export default function SettingsPage() {
           <button className="btn btn-ghost" onClick={handleConnect} disabled={connecting}>
             {connecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
           </button>
+          <button className="btn btn-ghost" onClick={handleFbConnect} disabled={fbBusy}>
+            {fbBusy ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ Facebook'}
+          </button>
           <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>เพิ่ม</button>
         </div>
-      </div>
-
-      <div className="card card-pad" style={{ marginBottom: 20 }}>
-        <h3 style={{ marginBottom: 8 }}>เชื่อมต่อ Facebook (Page)</h3>
-        <p style={{ margin: '0 0 10px', color: 'var(--muted)', fontSize: '0.9rem' }}>
-          กดปุ่มเพื่อเข้า Facebook login → ระบบบันทึก token ให้อัตโนมัติ (~60 วัน) พร้อมยืดอายุต่อได้ไม่ต้องเข้าเว็บ dev
-        </p>
-        <button className="btn btn-primary" onClick={handleFbConnect} disabled={fbBusy}>
-          {fbBusy ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ Facebook'}
-        </button>
       </div>
       {destinations.length === 0 ? (
         <div className="card empty">
@@ -118,6 +111,8 @@ export default function SettingsPage() {
                 <th>แพลตฟอร์ม</th>
                 <th>ชื่อ</th>
                 <th>Token</th>
+                <th>อัปเดตล่าสุด</th>
+                <th>สร้างเมื่อ</th>
                 <th style={{ textAlign: 'right' }}>การจัดการ</th>
               </tr>
             </thead>
@@ -127,6 +122,8 @@ export default function SettingsPage() {
                   <td>{d.platform}</td>
                   <td className="cell-title">{d.name}</td>
                   <td className="cell-mono">{String(d.access_token).slice(0, 20)}...</td>
+                  <td className="cell-muted">{new Date(d.updated_at).toLocaleString('th-TH')}</td>
+                  <td className="cell-muted">{new Date(d.created_at).toLocaleString('th-TH')}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(d); setShowForm(true) }} style={{ marginRight: 8 }}>แก้ไข</button>
                     <button className="btn btn-danger btn-sm" onClick={() => handleDelete(d.id)}>ปิดใช้งาน</button>

@@ -5,8 +5,8 @@ from providers.models import FacebookConfig
 FB_AUTH_URL = "https://www.facebook.com/v25.0/dialog/oauth"
 FB_TOKEN_URL = "https://graph.facebook.com/v25.0/oauth/access_token"
 FB_GRAPH_URL = "https://graph.facebook.com/v25.0"
-# publish to pages + list the pages
-SCOPES = "pages_manage_posts,pages_show_list,publish_video,pages_read_engagement"
+# publish video to pages + list the pages (publish_video = Live Video only, not needed)
+SCOPES = "pages_manage_posts,pages_show_list,pages_read_engagement"
 
 
 def _config():
