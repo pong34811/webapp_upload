@@ -22,6 +22,7 @@ export default function Navbar() {
         </NavLink>
         <nav className="nav">
           <NavLink to="/" end className={linkCls}>อัปโหลด</NavLink>
+          <NavLink to="/templates" className={linkCls}>เทมเพลต</NavLink>
           <NavLink to="/history" className={linkCls}>ประวัติ</NavLink>
           <NavLink to="/settings" className={linkCls}>ตั้งค่า</NavLink>
           <NavLink to="/docs" className={linkCls}>คู่มือ</NavLink>
