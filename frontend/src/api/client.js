@@ -46,6 +46,7 @@ export const oauthAPI = {
 }
 
 export const facebookAPI = {
+  authUrl: () => api.get('/oauth/facebook/auth-url/'),
   extend: (token) => api.post('/oauth/facebook/extend/', { access_token: token }),
 }
 

@@ -13,6 +13,15 @@ class FacebookExtendTokenTest(TestCase):
         self.client.force_authenticate(user=User.objects.create_user(username="admin", password="pass1234"))
         self.cfg = FacebookConfig.objects.create(client_id="appid", client_secret="appsecret")
 
+    def test_auth_url_returns_implicit_dialog(self):
+        resp = self.client.get("/api/oauth/facebook/auth-url/")
+        self.assertEqual(resp.status_code, 200)
+        url = resp.json()["auth_url"]
+        self.assertIn("https://www.facebook.com/v25.0/dialog/oauth", url)
+        self.assertIn("response_type=token", url)
+        self.assertIn("client_id=appid", url)
+        self.assertIn("facebook-token", url)
+
     def test_extend_creates_destination_per_page(self):
         pages = [
             {"id": "111", "name": "PageA", "access_token": "longA"},

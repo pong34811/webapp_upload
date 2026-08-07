@@ -8,7 +8,6 @@ export default function SettingsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
   const [connecting, setConnecting] = useState(false)
-  const [fbToken, setFbToken] = useState('')
   const [fbBusy, setFbBusy] = useState(false)
 
   const load = async () => {
@@ -21,13 +20,19 @@ export default function SettingsPage() {
   useEffect(() => {
     const onMsg = (e) => {
       if (e.origin !== window.location.origin) return
-      if (e.data?.type === 'oauth-success') {
+      if (e.data?.type === 'fb-oauth-success') {
+        toast.success('เชื่อมต่อ Facebook สำเร็จ')
+        load()
+      } else if (e.data?.type === 'fb-oauth-error') {
+        toast.error('เชื่อมต่อ Facebook ล้มเหลว: ' + (e.data.message || ''))
+      } else if (e.data?.type === 'oauth-success') {
         toast.success('เชื่อมต่อ YouTube สำเร็จ')
         load()
       } else if (e.data?.type === 'oauth-error') {
         toast.error('เชื่อมต่อล้มเหลว: ' + (e.data.message || ''))
       }
       setConnecting(false)
+      setFbBusy(false)
     }
     window.addEventListener('message', onMsg)
     return () => window.removeEventListener('message', onMsg)
@@ -45,16 +50,12 @@ export default function SettingsPage() {
   }
 
   const handleFbConnect = async () => {
-    if (!fbToken.trim()) { toast.error('กรุณาวาง Token'); return }
     setFbBusy(true)
     try {
-      const res = await facebookAPI.extend(fbToken.trim())
-      toast.success(`เชื่อมต่อ Facebook สำเร็จ (${res.data.destinations.length} Page)`)
-      setFbToken('')
-      load()
+      const res = await facebookAPI.authUrl()
+      window.open(res.data.auth_url, '_blank', 'width=600,height=700')
     } catch (e) {
       toast.error('เชื่อมต่อไม่สำเร็จ: ' + (e.response?.data?.error || 'ลองอีกครั้ง'))
-    } finally {
       setFbBusy(false)
     }
   }
@@ -98,14 +99,11 @@ export default function SettingsPage() {
       <div className="card card-pad" style={{ marginBottom: 20 }}>
         <h3 style={{ marginBottom: 8 }}>เชื่อมต่อ Facebook (Page)</h3>
         <p style={{ margin: '0 0 10px', color: 'var(--muted)', fontSize: '0.9rem' }}>
-          วาง <strong>User Token หรือ Page Token</strong> ระบบจะยืดอายุให้เป็น ~60 วัน แล้วบันทึก Page ให้อัตโนมัติ (ใช้ได้เฉพาะ local PC ไม่ต้อง HTTPS)
+          กดปุ่มเพื่อเข้า Facebook login → ระบบบันทึก token ให้อัตโนมัติ (~60 วัน) พร้อมยืดอายุต่อได้ไม่ต้องเข้าเว็บ dev
         </p>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input className="input" placeholder="วาง Facebook Token ตรงนี้..." value={fbToken} onChange={(e) => setFbToken(e.target.value)} />
-          <button className="btn btn-primary" onClick={handleFbConnect} disabled={fbBusy} style={{ whiteSpace: 'nowrap' }}>
-            {fbBusy ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ Facebook'}
-          </button>
-        </div>
+        <button className="btn btn-primary" onClick={handleFbConnect} disabled={fbBusy}>
+          {fbBusy ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ Facebook'}
+        </button>
       </div>
       {destinations.length === 0 ? (
         <div className="card empty">

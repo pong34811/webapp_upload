@@ -14,7 +14,7 @@ vi.mock('../api/client', async () => {
     ...actual,
     destinationAPI: { ...actual.destinationAPI, list: vi.fn().mockResolvedValue({ data: [] }) },
     oauthAPI: { start: vi.fn() },
-    facebookAPI: { extend: vi.fn().mockResolvedValue({ data: { destinations: [1] } }) },
+    facebookAPI: { authUrl: vi.fn(), extend: vi.fn().mockResolvedValue({}) },
     authAPI: { ...actual.authAPI, me: vi.fn().mockResolvedValue({ data: { username: 'admin' } }) },
   }
 })
@@ -57,14 +57,16 @@ describe('SettingsPage OAuth connect', () => {
     })
   })
 
-  it('extends the Facebook token and shows success', async () => {
+  it('opens the Facebook dialog popup when clicking connect facebook', async () => {
+    facebookAPI.authUrl.mockResolvedValue({ data: { auth_url: 'https://www.facebook.com/v25.0/dialog/oauth?response_type=token' } })
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => ({}))
     const user = userEvent.setup()
     renderPage()
-    await user.type(screen.getByPlaceholderText(/วาง Facebook Token/), 'EAAxxx')
     await user.click(screen.getByRole('button', { name: 'เชื่อมต่อ Facebook' }))
     await waitFor(() => {
-      expect(facebookAPI.extend).toHaveBeenCalledWith('EAAxxx')
-      expect(screen.getByText('เชื่อมต่อ Facebook สำเร็จ (1 Page)')).toBeInTheDocument()
+      expect(facebookAPI.authUrl).toHaveBeenCalled()
+      expect(openSpy).toHaveBeenCalledWith('https://www.facebook.com/v25.0/dialog/oauth?response_type=token', '_blank', expect.any(String))
     })
+    openSpy.mockRestore()
   })
 })

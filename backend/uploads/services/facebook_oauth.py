@@ -1,8 +1,12 @@
 import requests
+from urllib.parse import urlencode
 from providers.models import FacebookConfig
 
-FB_TOKEN_URL = "https://graph.facebook.com/v19.0/oauth/access_token"
-FB_GRAPH_URL = "https://graph.facebook.com/v19.0"
+FB_AUTH_URL = "https://www.facebook.com/v25.0/dialog/oauth"
+FB_TOKEN_URL = "https://graph.facebook.com/v25.0/oauth/access_token"
+FB_GRAPH_URL = "https://graph.facebook.com/v25.0"
+# publish to pages + list the pages
+SCOPES = "pages_manage_posts,pages_show_list,publish_video,pages_read_engagement"
 
 
 def _config():
@@ -10,6 +14,20 @@ def _config():
         return FacebookConfig.objects.filter(is_active=True).latest("id")
     except FacebookConfig.DoesNotExist:
         raise ValueError("ยังไม่ได้ตั้งค่า Facebook Config ใน Admin")
+
+
+def build_implicit_auth_url(redirect_uri):
+    # implicit token flow: token comes back in the redirect fragment (#access_token=...)
+    cfg = _config()
+    params = {
+        "response_type": "token",
+        "display": "popup",
+        "client_id": cfg.client_id,
+        "redirect_uri": redirect_uri,
+        "auth_type": "rerequest",
+        "scope": SCOPES,
+    }
+    return f"{FB_AUTH_URL}?{urlencode(params)}"
 
 
 def extend_token(cfg, token):
@@ -61,3 +79,4 @@ def fetch_page_from_token(page_token):
     if "id" not in data:
         raise ValueError("ไม่พบ Page จาก token นี้")
     return data
+

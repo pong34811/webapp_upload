@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import UploadPage from './pages/UploadPage'
 import SettingsPage from './pages/SettingsPage'
 import HistoryPage from './pages/HistoryPage'
+import FacebookTokenPage from './pages/FacebookTokenPage'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <ToastContainer position="top-right" autoClose={3000} />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/facebook-token" element={<FacebookTokenPage />} />
         <Route
           path="/"
           element={

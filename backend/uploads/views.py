@@ -282,6 +282,16 @@ def _find_or_create_facebook_destination(page, cfg, user):
     return dest
 
 
+def facebook_auth_url(request):
+    # returns the d/dialog URL for the implicit token flow (popup)
+    try:
+        redirect_uri = request.build_absolute_uri("/facebook-token/")
+        auth_url = facebook_oauth.build_implicit_auth_url(redirect_uri)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"auth_url": auth_url})
+
+
 def facebook_extend_token(request):
     # body: {"access_token": "<user or page token>"}
     # extends it to a long-lived (~60 day) token and upserts the Page destination
