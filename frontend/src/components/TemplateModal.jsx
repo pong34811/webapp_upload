@@ -17,6 +17,13 @@ export default function TemplateModal({ open, mode, initial, templates, onSaved,
     }
   }, [open, initial])
 
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
   if (!open) return null
 
   const handleSubmit = async (e) => {
@@ -29,7 +36,10 @@ export default function TemplateModal({ open, mode, initial, templates, onSaved,
         ? await templateAPI.update(initial.id, payload)
         : await templateAPI.create(payload)
       onSaved(res.data)
-    } catch { toast.error('บันทึกเทมเพลตไม่สำเร็จ') }
+    } catch (err) {
+      const msg = err?.response?.data?.error || 'บันทึกเทมเพลตไม่สำเร็จ'
+      toast.error(msg)
+    }
   }
 
   return (
