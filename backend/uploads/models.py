@@ -30,6 +30,7 @@ class Destination(models.Model):
 
 class UploadTemplate(models.Model):
     name = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, blank=True, default="")
     description = models.TextField(blank=True, default="")
     tags = models.TextField(blank=True, default="")
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="upload_templates")
