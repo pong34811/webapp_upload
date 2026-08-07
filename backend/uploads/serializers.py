@@ -27,7 +27,7 @@ class UploadJobSerializer(serializers.ModelSerializer):
 class UploadTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UploadTemplate
-        fields = ["id", "name", "description", "tags", "created_at"]
+        fields = ["id", "name", "title", "description", "tags", "created_at"]
         read_only_fields = ["id", "created_at"]
 
 
