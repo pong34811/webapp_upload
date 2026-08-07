@@ -8,6 +8,7 @@ import UploadPage from './pages/UploadPage'
 import SettingsPage from './pages/SettingsPage'
 import HistoryPage from './pages/HistoryPage'
 import FacebookTokenPage from './pages/FacebookTokenPage'
+import DocsPage from './pages/DocsPage'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route index element={<UploadPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="history" element={<HistoryPage />} />
+          <Route path="docs" element={<DocsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

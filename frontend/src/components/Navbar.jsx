@@ -24,6 +24,7 @@ export default function Navbar() {
           <NavLink to="/" end className={linkCls}>อัปโหลด</NavLink>
           <NavLink to="/history" className={linkCls}>ประวัติ</NavLink>
           <NavLink to="/settings" className={linkCls}>ตั้งค่า</NavLink>
+          <NavLink to="/docs" className={linkCls}>คู่มือ</NavLink>
         </nav>
         <span className="topbar-spacer" />
         <button onClick={handleLogout} className="btn btn-ghost btn-sm">ออกจากระบบ</button>

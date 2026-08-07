@@ -395,3 +395,4 @@ h3 { font-size: 1.15rem; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+.code { display: inline-block; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); font-family: ui-monospace, Consolas, monospace; font-size: 0.85rem; color: var(--accent); }
