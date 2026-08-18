@@ -1,5 +1,6 @@
 import requests
 from urllib.parse import urlencode
+from datetime import datetime, timezone
 from providers.models import FacebookConfig
 
 FB_AUTH_URL = "https://www.facebook.com/v25.0/dialog/oauth"
@@ -80,4 +81,22 @@ def fetch_page_from_token(page_token):
     if "id" not in data:
         raise ValueError("ไม่พบ Page จาก token นี้")
     return data
+
+
+def data_access_expiry(cfg, token):
+    # page tokens never expire; the real limit is data access (90 days after login).
+    # returns a datetime or None if FB doesn't report it.
+    try:
+        resp = requests.get(f"{FB_GRAPH_URL}/debug_token", params={
+            "input_token": token,
+            "access_token": f"{cfg.client_id}|{cfg.client_secret}",
+        }, timeout=10)
+        resp.raise_for_status()
+        exp = (resp.json().get("data") or {}).get("data_access_expires_at")
+        if not exp:
+            return None
+        return datetime.fromtimestamp(exp, tz=timezone.utc)
+    except Exception:
+        # failure to look up is informational only; never fail the token-extension flow
+        return None
 

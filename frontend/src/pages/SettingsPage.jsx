@@ -123,8 +123,12 @@ export default function SettingsPage() {
                   <td>{d.platform}</td>
                   <td className="cell-title">{d.name}</td>
                   <td className="cell-mono">{String(d.access_token).slice(0, 20)}...</td>
-                  <td className="cell-muted">
-                    {d.token_expires_at ? new Date(d.token_expires_at).toLocaleString('th-TH') : 'ไม่มีวันหยุดอายุ'}
+                  <td className="cell-muted"
+                      title={!d.token_expires_at && d.data_access_expires_at ? 'วันหมดอายุการเข้าถึงข้อมูล (data access)' : undefined}>
+                    {d.token_expires_at ? new Date(d.token_expires_at).toLocaleString('th-TH')
+                      : d.data_access_expires_at
+                        ? `${new Date(d.data_access_expires_at).toLocaleString('th-TH')} (data access)`
+                        : 'ไม่มีวันหมดอายุ'}
                   </td>
                   <td className="cell-muted">{new Date(d.updated_at).toLocaleString('th-TH')}</td>
                   <td className="cell-muted">{new Date(d.created_at).toLocaleString('th-TH')}</td>

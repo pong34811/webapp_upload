@@ -1,3 +1,8 @@
+import json
+import os
+import secrets
+import threading
+import uuid
 from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
@@ -269,7 +274,7 @@ def oauth_youtube_callback(request):
     return render(request, "oauth_done.html", {"result_json": json.dumps(result_payload)})
 
 
-def _find_or_create_facebook_destination(page, cfg, user, expires_in=None):
+def _find_or_create_facebook_destination(page, cfg, user, expires_in=None, data_access_exp=None):
     dest = Destination.objects.filter(platform="facebook", page_id=str(page["id"])).first()
     if dest is None:
         dest = Destination(platform="facebook", page_id=str(page["id"]), created_by=user, updated_by=user)
@@ -280,6 +285,8 @@ def _find_or_create_facebook_destination(page, cfg, user, expires_in=None):
     dest.is_active = True
     if expires_in:
         dest.token_expires_at = timezone.now() + timedelta(seconds=int(expires_in))
+    if data_access_exp:
+        dest.data_access_expires_at = data_access_exp
     dest.save()
     return dest
 
@@ -311,6 +318,7 @@ def facebook_extend_token(request):
     try:
         cfg = facebook_oauth._config()
         long_token, expires_in = facebook_oauth.extend_token(cfg, raw)
+        data_access_exp = facebook_oauth.data_access_expiry(cfg, long_token)
         user = request.user if request.user.is_authenticated else None
         created = []
         try:
@@ -319,7 +327,7 @@ def facebook_extend_token(request):
             page = facebook_oauth.fetch_page_from_token(long_token)
             pages = [{"id": page["id"], "name": page.get("name", ""), "access_token": long_token}]
         for page in pages:
-            dest = _find_or_create_facebook_destination(page, cfg, user, expires_in)
+            dest = _find_or_create_facebook_destination(page, cfg, user, expires_in, data_access_exp)
             created.append(dest.id)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
