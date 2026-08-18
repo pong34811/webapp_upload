@@ -34,6 +34,18 @@ npm run dev
 ```
 เปิด http://localhost:5173 (API ถูก proxy ไป backend :8000 อัตโนมัติ)
 
+## ทดสอบ (Testing)
+
+```bash
+# Backend — ใช้ pytest (แทน manage.py test)
+cd backend
+python -m pytest
+
+# Frontend — ใช้ vitest
+cd frontend
+npm test
+```
+
 ## การใช้งาน
 1. เข้าสู่ระบบด้วย Admin
 2. ไปหน้า **ตั้งค่า** เพื่อเพิ่มช่อง YouTube / เพจ Facebook (วาง Access Token)

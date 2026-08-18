@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Backend tests migrated to pytest**: Run with `cd backend && python -m pytest` (replaces `python manage.py test`)
+
 ## [1.5.0] - 2026-08-07
 
 ### Added
