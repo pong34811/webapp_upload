@@ -1,47 +1,59 @@
 from unittest import mock
-from django.test import TestCase
+
+import pytest
 from uploads.services import youtube_oauth
 
 
-class YouTubeOAuthTest(TestCase):
-    def test_build_auth_url_contains_state_and_scope(self):
-        with mock.patch("uploads.services.youtube_oauth._config") as cfg:
-            cfg.return_value.client_id = "cid"
-            cfg.return_value.client_secret = "sec"
-            cfg.return_value.redirect_uri = "http://localhost:8000/api/oauth/youtube/callback/"
-            url = youtube_oauth.build_auth_url("abc123")
-        self.assertIn("state=abc123", url)
-        self.assertIn("youtube.upload", url)
-        self.assertIn("access_type=offline", url)
+def _fake_config():
+    cfg = mock.Mock()
+    cfg.client_id = "cid"
+    cfg.client_secret = "sec"
+    cfg.redirect_uri = "http://localhost:8000/api/oauth/youtube/callback/"
+    return cfg
 
-    def test_exchange_code_for_tokens(self):
-        fake = mock.Mock()
-        fake.raise_for_status.return_value = None
-        fake.json.return_value = {"access_token": "atok", "refresh_token": "rtok"}
-        with mock.patch("uploads.services.youtube_oauth.requests.post", return_value=fake):
-            with mock.patch("uploads.services.youtube_oauth._config") as cfg:
-                cfg.return_value.client_id = "cid"
-                cfg.return_value.client_secret = "sec"
-                cfg.return_value.redirect_uri = "http://localhost:8000/api/oauth/youtube/callback/"
-                tokens = youtube_oauth.exchange_code_for_tokens("code123")
-        self.assertEqual(tokens["access_token"], "atok")
-        self.assertEqual(tokens["refresh_token"], "rtok")
 
-    def test_fetch_channel_title(self):
-        fake = mock.Mock()
-        fake.raise_for_status.return_value = None
-        fake.json.return_value = {"items": [{"snippet": {"title": "ช่องทดสอบ"}}]}
-        with mock.patch("uploads.services.youtube_oauth.requests.get", return_value=fake):
-            title = youtube_oauth.fetch_channel_title("atok")
-        self.assertEqual(title, "ช่องทดสอบ")
+def _fake_response(json_payload=None, error=None):
+    resp = mock.Mock()
+    if error:
+        resp.raise_for_status.side_effect = error
+    else:
+        resp.raise_for_status.return_value = None
+    resp.json.return_value = json_payload or {}
+    return resp
 
-    def test_exchange_raises_on_error(self):
-        fake = mock.Mock()
-        fake.raise_for_status.side_effect = Exception("invalid_grant")
-        with mock.patch("uploads.services.youtube_oauth.requests.post", return_value=fake):
-            with mock.patch("uploads.services.youtube_oauth._config") as cfg:
-                cfg.return_value.client_id = "cid"
-                cfg.return_value.client_secret = "sec"
-                cfg.return_value.redirect_uri = "http://localhost:8000/api/oauth/youtube/callback/"
-                with self.assertRaises(ValueError):
-                    youtube_oauth.exchange_code_for_tokens("bad")
+
+def test_build_auth_url_contains_state_and_scope(monkeypatch):
+    monkeypatch.setattr(youtube_oauth, "_config", mock.Mock(return_value=_fake_config()))
+    url = youtube_oauth.build_auth_url("abc123")
+    assert "state=abc123" in url
+    assert "youtube.upload" in url
+    assert "access_type=offline" in url
+
+
+def test_exchange_code_for_tokens(monkeypatch):
+    monkeypatch.setattr(
+        "uploads.services.youtube_oauth.requests.post",
+        mock.Mock(return_value=_fake_response({"access_token": "atok", "refresh_token": "rtok"})),
+    )
+    monkeypatch.setattr(youtube_oauth, "_config", mock.Mock(return_value=_fake_config()))
+    tokens = youtube_oauth.exchange_code_for_tokens("code123")
+    assert tokens["access_token"] == "atok"
+    assert tokens["refresh_token"] == "rtok"
+
+
+def test_fetch_channel_title(monkeypatch):
+    monkeypatch.setattr(
+        "uploads.services.youtube_oauth.requests.get",
+        mock.Mock(return_value=_fake_response({"items": [{"snippet": {"title": "ช่องทดสอบ"}}]})),
+    )
+    assert youtube_oauth.fetch_channel_title("atok") == "ช่องทดสอบ"
+
+
+def test_exchange_raises_on_error(monkeypatch):
+    monkeypatch.setattr(
+        "uploads.services.youtube_oauth.requests.post",
+        mock.Mock(return_value=_fake_response(error=Exception("invalid_grant"))),
+    )
+    monkeypatch.setattr(youtube_oauth, "_config", mock.Mock(return_value=_fake_config()))
+    with pytest.raises(ValueError):
+        youtube_oauth.exchange_code_for_tokens("bad")

@@ -1,22 +1,29 @@
-from django.test import TestCase
-from django.test.utils import override_settings
 from pathlib import Path
 
+import pytest
 
-class SpaServingTest(TestCase):
-    @override_settings(SPA_DIR=Path(__file__).parent)
-    def test_root_serves_index(self):
-        from django.conf import settings
-        if not (settings.SPA_DIR / "index.html").exists():
-            self.skipTest("no built SPA present")
-        resp = self.client.get("/")
-        self.assertEqual(resp.status_code, 200)
+_SPA_DIR = Path(__file__).parent
 
-    @override_settings(SPA_DIR=Path(__file__).parent)
-    def test_catchall_serves_index(self):
-        from django.conf import settings
-        if not (settings.SPA_DIR / "index.html").exists():
-            self.skipTest("no built SPA present")
-        resp = self.client.get("/settings")
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "# setting")
+
+def _spa_available():
+    return (_SPA_DIR / "index.html").exists()
+
+
+_SPA_SKIP = pytest.mark.skipif(not _spa_available(), reason="no built SPA present")
+
+
+@_SPA_SKIP
+@pytest.mark.django_db
+def test_root_serves_index(settings, client):
+    settings.SPA_DIR = _SPA_DIR
+    resp = client.get("/")
+    assert resp.status_code == 200
+
+
+@_SPA_SKIP
+@pytest.mark.django_db
+def test_catchall_serves_index(settings, client):
+    settings.SPA_DIR = _SPA_DIR
+    resp = client.get("/settings")
+    assert resp.status_code == 200
+    assert b"# setting" in resp.content

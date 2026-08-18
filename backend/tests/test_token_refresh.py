@@ -1,8 +1,9 @@
 import os
 import socket
-from unittest import mock, skipUnless
-from django.test import TestCase
-from django.contrib.auth.models import User
+from unittest import mock
+
+import pytest
+import requests
 from uploads.models import Destination
 from uploads.services.token_refresh import (
     refresh_youtube_access_token,
@@ -21,63 +22,73 @@ def _network_available(host="oauth2.googleapis.com", port=443, timeout=3):
 _REAL_NETWORK = _network_available() and os.environ.get("RUN_REAL_NETWORK") == "1"
 
 
-class TokenRefreshTest(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username="admin", password="pass1234")
+def _fake_post_response(json_payload=None, error=None):
+    resp = mock.Mock()
+    if error:
+        resp.raise_for_status.side_effect = error
+    else:
+        resp.raise_for_status.return_value = None
+    resp.json.return_value = json_payload or {}
+    return resp
 
-    def test_refresh_youtube_access_token(self):
-        fake_resp = mock.Mock()
-        fake_resp.raise_for_status.return_value = None
-        fake_resp.json.return_value = {"access_token": "new_tok"}
-        with mock.patch("uploads.services.token_refresh.requests.post", return_value=fake_resp):
-            tok = refresh_youtube_access_token("cid", "csec", "rtok")
-        self.assertEqual(tok, "new_tok")
 
-    def test_refresh_youtube_access_token_raises_on_error(self):
-        fake_resp = mock.Mock()
-        fake_resp.raise_for_status.side_effect = Exception("bad")
-        with mock.patch("uploads.services.token_refresh.requests.post", return_value=fake_resp):
-            with self.assertRaises(Exception):
-                refresh_youtube_access_token("cid", "csec", "rtok")
+def test_refresh_youtube_access_token(monkeypatch):
+    monkeypatch.setattr(
+        "uploads.services.token_refresh.requests.post",
+        mock.Mock(return_value=_fake_post_response({"access_token": "new_tok"})),
+    )
+    assert refresh_youtube_access_token("cid", "csec", "rtok") == "new_tok"
 
-    def test_get_valid_access_token_uses_refresh(self):
-        dest = Destination.objects.create(
-            platform="youtube", name="Ch", access_token="old",
-            client_id="cid", client_secret="csec", refresh_token="rtok",
-            created_by=self.user, updated_by=self.user,
+
+def test_refresh_youtube_access_token_raises_on_error(monkeypatch):
+    monkeypatch.setattr(
+        "uploads.services.token_refresh.requests.post",
+        mock.Mock(return_value=_fake_post_response(error=Exception("bad"))),
+    )
+    with pytest.raises(Exception):
+        refresh_youtube_access_token("cid", "csec", "rtok")
+
+
+@pytest.mark.django_db
+def test_get_valid_access_token_uses_refresh(user, monkeypatch):
+    dest = Destination.objects.create(
+        platform="youtube", name="Ch", access_token="old",
+        client_id="cid", client_secret="csec", refresh_token="rtok",
+        created_by=user, updated_by=user,
+    )
+    monkeypatch.setattr(
+        "uploads.services.token_refresh.requests.post",
+        mock.Mock(return_value=_fake_post_response({"access_token": "fresh"})),
+    )
+    assert get_valid_access_token(dest) == "fresh"
+
+
+@pytest.mark.django_db
+def test_get_valid_access_token_legacy_fallback(user):
+    dest = Destination.objects.create(
+        platform="youtube", name="Ch", access_token="legacy",
+        created_by=user, updated_by=user,
+    )
+    assert get_valid_access_token(dest) == "legacy"
+
+
+@pytest.mark.django_db
+def test_get_valid_access_token_facebook_legacy(user):
+    dest = Destination.objects.create(
+        platform="facebook", name="Pg", access_token="fbtok",
+        created_by=user, updated_by=user,
+    )
+    assert get_valid_access_token(dest) == "fbtok"
+
+
+@pytest.mark.skipif(not _REAL_NETWORK, reason="requires live network + RUN_REAL_NETWORK=1")
+def test_refresh_youtube_access_token_real_endpoint():
+    # Hits Google's real token endpoint to validate the actual network
+    # code path and error handling. Uses an invalid refresh token so no
+    # real credentials are needed; we expect a 400 invalid_grant response.
+    with pytest.raises(requests.exceptions.HTTPError):
+        refresh_youtube_access_token(
+            "dummy_client_id.apps.googleusercontent.com",
+            "dummy_secret",
+            "dummy_invalid_refresh_token",
         )
-        fake_resp = mock.Mock()
-        fake_resp.raise_for_status.return_value = None
-        fake_resp.json.return_value = {"access_token": "fresh"}
-        with mock.patch("uploads.services.token_refresh.requests.post", return_value=fake_resp):
-            tok = get_valid_access_token(dest)
-        self.assertEqual(tok, "fresh")
-
-    def test_get_valid_access_token_legacy_fallback(self):
-        dest = Destination.objects.create(
-            platform="youtube", name="Ch", access_token="legacy",
-            created_by=self.user, updated_by=self.user,
-        )
-        tok = get_valid_access_token(dest)
-        self.assertEqual(tok, "legacy")
-
-    def test_get_valid_access_token_facebook_legacy(self):
-        dest = Destination.objects.create(
-            platform="facebook", name="Pg", access_token="fbtok",
-            created_by=self.user, updated_by=self.user,
-        )
-        self.assertEqual(get_valid_access_token(dest), "fbtok")
-
-    @skipUnless(_REAL_NETWORK, "requires live network + RUN_REAL_NETWORK=1")
-    def test_refresh_youtube_access_token_real_endpoint(self):
-        # Hits Google's real token endpoint to validate the actual network
-        # code path and error handling. Uses an invalid refresh token so no
-        # real credentials are needed; we expect a 400 invalid_grant response.
-        import requests
-
-        with self.assertRaises(requests.exceptions.HTTPError):
-            refresh_youtube_access_token(
-                "dummy_client_id.apps.googleusercontent.com",
-                "dummy_secret",
-                "dummy_invalid_refresh_token",
-            )
