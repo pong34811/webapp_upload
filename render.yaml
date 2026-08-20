@@ -7,7 +7,7 @@ services:
       cd ../backend && pip install -r requirements.txt
       python manage.py collectstatic --noinput
       python manage.py migrate --noinput
-    startCommand: cd backend && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120
+    startCommand: cd backend && python manage.py ensure_admin && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: "3.12"
@@ -17,7 +17,9 @@ services:
         value: "False"
       - key: FRONTEND_URL
         sync: false
-    disk:
-      name: uploads
-      mountPath: /opt/render/project/src/backend/media/uploads
-      sizeGB: 10
+      - key: ADMIN_USERNAME
+        value: "admin"
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_EMAIL
+        value: "admin@example.com"
