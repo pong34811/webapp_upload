@@ -14,14 +14,16 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      await authAPI.login(username, password)
-      const me = await authAPI.me()
-      if (!me.data.username) {
-        toast.error('เข้าสู่ระบบล้มเหลว ไม่ได้รับ session')
+      const res = await authAPI.login(username, password)
+      const token = res.data.token
+      if (!token) {
+        toast.error('เข้าสู่ระบบล้มเหลว ไม่ได้รับ token')
         return
       }
+      localStorage.setItem('auth_token', token)
       toast.success('เข้าสู่ระบบสำเร็จ')
-      navigate('/')
+      window.location.hash = '#/'
+      window.location.reload()
     } catch {
       toast.error('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง')
     } finally {

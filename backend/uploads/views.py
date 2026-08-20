@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
+from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from .models import Destination, UploadJob, UploadTemplate
 from .import_excel import parse_excel, preview_sheet
@@ -37,8 +38,8 @@ def api_login(request):
     password = data.get("password")
     user = authenticate(request, username=username, password=password)
     if user is not None:
-        login(request, user)
-        return JsonResponse({"message": "ok", "username": user.username})
+        token, _ = Token.objects.get_or_create(user=user)
+        return JsonResponse({"message": "ok", "username": user.username, "token": token.key})
     return JsonResponse({"error": "invalid credentials"}, status=400)
 
 
@@ -46,11 +47,15 @@ def api_login(request):
 def api_logout(request):
     if request.method != "POST":
         return JsonResponse({"error": "method not allowed"}, status=405)
+    # Delete token if present
+    auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+    if auth_header.startswith("Token "):
+        try:
+            Token.objects.filter(key=auth_header.split(" ")[1]).delete()
+        except Exception:
+            pass
     request.session.flush()
-    resp = JsonResponse({"message": "ok"})
-    resp.delete_cookie("sessionid")
-    resp.delete_cookie("csrftoken")
-    return resp
+    return JsonResponse({"message": "ok"})
 
 
 @api_view(["GET"])

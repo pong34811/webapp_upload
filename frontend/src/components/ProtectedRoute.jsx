@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
 import { authAPI } from '../api/client'
 
 export default function ProtectedRoute({ children }) {
@@ -7,16 +6,27 @@ export default function ProtectedRoute({ children }) {
 
   useEffect(() => {
     let active = true
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      setState('denied')
+      return
+    }
     authAPI
       .me()
       .then(() => active && setState('ok'))
-      .catch(() => active && setState('denied'))
+      .catch(() => {
+        localStorage.removeItem('auth_token')
+        active && setState('denied')
+      })
     return () => {
       active = false
     }
   }, [])
 
   if (state === 'checking') return null
-  if (state === 'denied') return <Navigate to="/login" replace />
+  if (state === 'denied') {
+    window.location.hash = '#/login'
+    return null
+  }
   return children
 }

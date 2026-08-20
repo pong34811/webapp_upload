@@ -1,19 +1,17 @@
 import axios from 'axios'
 
-function getCsrfToken() {
-  const match = document.cookie.match(/csrftoken=([^;]+)/)
-  return match ? match[1] : ''
-}
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
 
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, ''),
-  withCredentials: true,
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
 })
 
+// Attach token from localStorage to every request
 api.interceptors.request.use((config) => {
-  if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
-    config.headers['X-CSRFToken'] = getCsrfToken()
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    config.headers['Authorization'] = `Token ${token}`
   }
   return config
 })
@@ -21,7 +19,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 403 || err.response?.status === 401) {
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      localStorage.removeItem('auth_token')
       window.location.hash = '#/login'
     }
     return Promise.reject(err)

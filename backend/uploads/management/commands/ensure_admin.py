@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 
 
 class Command(BaseCommand):
@@ -22,7 +23,10 @@ class Command(BaseCommand):
         user.email = email
         user.save()
 
+        token, _ = Token.objects.get_or_create(user=user)
+
         if created:
             self.stdout.write(self.style.SUCCESS(f'Created superuser "{username}"'))
         else:
             self.stdout.write(self.style.WARNING(f'Updated superuser "{username}" password'))
+        self.stdout.write(f'Token: {token.key}')

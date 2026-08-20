@@ -7,9 +7,11 @@ export default function Navbar() {
   const navigate = useNavigate()
 
   const handleLogout = async () => {
-    await authAPI.logout()
+    await authAPI.logout().catch(() => {})
+    localStorage.removeItem('auth_token')
     toast.success('ออกจากระบบแล้ว')
-    navigate('/login')
+    window.location.hash = '#/login'
+    window.location.reload()
   }
 
   const linkCls = ({ isActive }) => `nav-link${isActive ? ' active' : ''}`
