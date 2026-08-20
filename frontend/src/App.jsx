@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Layout from './components/Layout'
@@ -13,7 +13,7 @@ import DocsPage from './pages/DocsPage'
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ToastContainer position="top-right" autoClose={3000} />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -33,7 +33,7 @@ function App() {
           <Route path="docs" element={<DocsPage />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
