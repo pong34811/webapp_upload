@@ -3,9 +3,12 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "dev-secret-key-change-in-production"
-DEBUG = True
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
 ALLOWED_HOSTS = ["*"]
+RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # Frontend SPA origin (Vite dev server). Used for OAuth redirect_uri targets.
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
@@ -26,6 +29,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -69,11 +73,38 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Frontend build output (served in production)
+FRONTEND_BUILD_DIR = BASE_DIR.parent / "frontend" / "dist"
+if FRONTEND_BUILD_DIR.exists():
+    TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR]
+    STATICFILES_DIRS = [FRONTEND_BUILD_DIR / "assets"]
+else:
+    STATICFILES_DIRS = []
+
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.extend([
+        f"https://{RENDER_EXTERNAL_HOSTNAME}",
+        f"http://{RENDER_EXTERNAL_HOSTNAME}",
+    ])
+
+# Session cookie settings for production
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SAMESITE = "Lax"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
