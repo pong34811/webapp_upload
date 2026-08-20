@@ -58,10 +58,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "core.wsgi.application"
 
+DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data"))
+os.makedirs(DATA_DIR, exist_ok=True)
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": DATA_DIR / "db.sqlite3",
     }
 }
 
@@ -128,7 +131,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-UPLOAD_DIR = BASE_DIR / "media" / "uploads"
+UPLOAD_DIR = DATA_DIR / "media" / "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_VIDEO_EXTENSIONS = [".mp4", ".mov", ".avi", ".mkv", ".webm"]

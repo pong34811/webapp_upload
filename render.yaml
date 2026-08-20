@@ -19,6 +19,14 @@ services:
         sync: false
       - key: ADMIN_EMAIL
         value: "admin@example.com"
+      - key: FRONTEND_URL
+        sync: false
+      - key: DATA_DIR
+        value: /opt/render/project/data
+    disk:
+      name: data
+      mountPath: /opt/render/project/data
+      sizeGB: 1
 
   - type: static_site
     name: webapp-upload-frontend
@@ -26,4 +34,4 @@ services:
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://webapp-upload.onrender.com
+        value: https://webapp-upload.onrender.com/api
