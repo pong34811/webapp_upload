@@ -15,6 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from .models import Destination, UploadJob, UploadTemplate
+from .import_excel import parse_excel, preview_sheet
 from .serializers import DestinationSerializer, UploadJobSerializer, UploadCreateSerializer, UploadTemplateSerializer
 from .services.youtube import upload_to_youtube
 from .services.facebook import upload_to_facebook
@@ -107,26 +108,41 @@ class UploadViewSet(viewsets.ModelViewSet):
             return Response({"error": "destination not found"}, status=400)
 
         uploaded_file = request.FILES.get("file")
-        if not uploaded_file:
+        excel_file_path = data.get("file_path", "")
+
+        if uploaded_file:
+            # ── Normal upload via browser ──
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            if ext not in settings.ALLOWED_VIDEO_EXTENSIONS:
+                return Response({"error": f"unsupported format: {ext}"}, status=400)
+            if uploaded_file.size > settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
+                return Response({"error": "file too large"}, status=400)
+            save_path = settings.UPLOAD_DIR / f"{uuid.uuid4().hex}_{uploaded_file.name}"
+            with open(save_path, "wb+") as f:
+                for chunk in uploaded_file.chunks():
+                    f.write(chunk)
+            display_name = uploaded_file.name
+        elif excel_file_path:
+            # ── Read file from disk path (from Excel import) ──
+            if not os.path.isfile(excel_file_path):
+                return Response({"error": f"file not found on disk: {excel_file_path}"}, status=400)
+            ext = os.path.splitext(excel_file_path)[1].lower()
+            if ext not in settings.ALLOWED_VIDEO_EXTENSIONS:
+                return Response({"error": f"unsupported format: {ext}"}, status=400)
+            file_size = os.path.getsize(excel_file_path)
+            if file_size > settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
+                return Response({"error": "file too large"}, status=400)
+            save_path = settings.UPLOAD_DIR / f"{uuid.uuid4().hex}_{os.path.basename(excel_file_path)}"
+            # Copy (not move) — keep original intact
+            import shutil
+            shutil.copy2(excel_file_path, str(save_path))
+            display_name = os.path.basename(excel_file_path)
+        else:
             return Response({"error": "no file"}, status=400)
-
-        ext = os.path.splitext(uploaded_file.name)[1].lower()
-        if ext not in settings.ALLOWED_VIDEO_EXTENSIONS:
-            return Response({"error": f"unsupported format: {ext}"}, status=400)
-
-        if uploaded_file.size > settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
-            return Response({"error": "file too large"}, status=400)
-
-        # unique name so concurrent jobs / same-named files never share a path
-        # (each job deletes its own file on success)
-        save_path = settings.UPLOAD_DIR / f"{uuid.uuid4().hex}_{uploaded_file.name}"
-        with open(save_path, "wb+") as f:
-            for chunk in uploaded_file.chunks():
-                f.write(chunk)
 
         job = UploadJob.objects.create(
             destination=dest,
-            filename=uploaded_file.name,
+            filename=display_name,
             file_path=str(save_path),
             title=data["title"],
             description=data.get("description", ""),
@@ -333,4 +349,81 @@ def facebook_extend_token(request):
         return JsonResponse({"error": str(e)}, status=400)
 
     return JsonResponse({"message": "ok", "destinations": created})
+
+
+# ── Excel Import ─────────────────────────────────────────────────────
+
+@csrf_exempt
+def import_excel_sheets(request):
+    """Upload an .xlsx file or provide a file_path to read from disk."""
+    if request.method != "POST":
+        return JsonResponse({"error": "method not allowed"}, status=405)
+
+    f = request.FILES.get("file")
+    file_path = request.POST.get("file_path", "")
+
+    excel_bytes = None
+    display_name = ""
+    if f:
+        if not f.name.endswith(".xlsx"):
+            return JsonResponse({"error": "file must be .xlsx"}, status=400)
+        excel_bytes = f.read()
+        display_name = f.name
+    elif file_path:
+        if not os.path.isfile(file_path):
+            return JsonResponse({"error": f"file not found: {file_path}"}, status=400)
+        if not file_path.endswith(".xlsx"):
+            return JsonResponse({"error": "file must be .xlsx"}, status=400)
+        with open(file_path, "rb") as fh:
+            excel_bytes = fh.read()
+        display_name = os.path.basename(file_path)
+    else:
+        return JsonResponse({"error": "no file"}, status=400)
+
+    try:
+        result = parse_excel(excel_bytes)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    result["display_name"] = display_name
+    return JsonResponse(result)
+
+
+@csrf_exempt
+def import_excel_preview(request):
+    """Upload an .xlsx file and return preview rows for a chosen sheet."""
+    if request.method != "POST":
+        return JsonResponse({"error": "method not allowed"}, status=405)
+
+    f = request.FILES.get("file")
+    sheet_name = request.POST.get("sheet_name", "")
+    file_path = request.POST.get("file_path", "")
+
+    # Read from uploaded file or from disk path
+    excel_bytes = None
+    if f:
+        if not f.name.endswith(".xlsx"):
+            return JsonResponse({"error": "file must be .xlsx"}, status=400)
+        excel_bytes = f.read()
+    elif file_path:
+        if not os.path.isfile(file_path):
+            return JsonResponse({"error": f"file not found: {file_path}"}, status=400)
+        if not file_path.endswith(".xlsx"):
+            return JsonResponse({"error": "file must be .xlsx"}, status=400)
+        with open(file_path, "rb") as fh:
+            excel_bytes = fh.read()
+    else:
+        return JsonResponse({"error": "no file"}, status=400)
+
+    if not sheet_name:
+        return JsonResponse({"error": "sheet_name is required"}, status=400)
+
+    try:
+        result = preview_sheet(excel_bytes, sheet_name)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    return JsonResponse(result)
 

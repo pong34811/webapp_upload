@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 import { uploadAPI } from '../api/client'
+import { FaSearch, FaHistory, FaRedo, FaYoutube, FaFacebook, FaCalendar } from 'react-icons/fa'
 
 const STATUS_LABEL = {
   pending: 'รอดำเนินการ',
@@ -8,6 +9,13 @@ const STATUS_LABEL = {
   success: 'สำเร็จ',
   failed: 'ล้มเหลว',
   scheduled: 'ตั้งเวลาแล้ว',
+}
+
+const PlatformIcon = ({ name }) => {
+  const n = (name || '').toLowerCase()
+  if (n.includes('youtube')) return <FaYoutube style={{ color: '#ef4444', marginRight: 6 }} />
+  if (n.includes('facebook')) return <FaFacebook style={{ color: '#3b82f6', marginRight: 6 }} />
+  return null
 }
 
 export default function HistoryPage() {
@@ -37,17 +45,30 @@ export default function HistoryPage() {
   return (
     <div>
       <div className="page-head">
-        <h2 className="page-title">ประวัติการอัปโหลด</h2>
+        <h2 className="page-title"><FaHistory style={{ marginRight: 10, verticalAlign: 'middle', color: 'var(--accent)' }} />ประวัติการอัปโหลด</h2>
       </div>
       {jobs.length === 0 ? (
         <div className="card empty">
+          <span className="empty-icon">📋</span>
           <p className="empty-title">ยังไม่มีประวัติการอัปโหลด</p>
           <p className="empty-text">อัปโหลดวิดีโอชิ้นแรกของคุณเพื่อเริ่มใช้งาน</p>
         </div>
       ) : (
         <>
           <div className="filter-bar card card-pad">
-            <input className="input input-sm" placeholder="ค้นหาชื่อคลิป / ปลายทาง..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
+            <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
+              <FaSearch style={{
+                position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                color: 'var(--faint)', fontSize: 14
+              }} />
+              <input
+                className="input input-sm"
+                placeholder="ค้นหาชื่อคลิป / ปลายทาง..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ paddingLeft: 34 }}
+              />
+            </div>
             <select className="select select-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
               <option value="">ทุกสถานะ</option>
               <option value="pending">รอดำเนินการ</option>
@@ -66,22 +87,36 @@ export default function HistoryPage() {
                   <th>สถานะ</th>
                   <th>ความคืบหน้า</th>
                   <th>เวลาสร้าง</th>
-                  <th style={{ width: 60 }}></th>
+                  <th style={{ width: 80 }}></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: 24 }}>ไม่พบข้อมูล</td></tr>
+                  <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: 32 }}>🔍 ไม่พบข้อมูล</td></tr>
                 ) : filtered.map((job) => (
                   <tr key={job.id}>
-                    <td className="cell-title">{job.title}</td>
-                    <td>{job.destination_name}</td>
+                    <td className="cell-title cell-truncate" title={job.title}>{job.title}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <PlatformIcon name={job.destination_name} />
+                        {job.destination_name}
+                      </div>
+                    </td>
                     <td><span className={`badge badge-${job.status}`}>{STATUS_LABEL[job.status]}</span></td>
-                    <td>{job.progress}%</td>
-                    <td className="cell-mono">{new Date(job.created_at).toLocaleString()}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="progress" style={{ width: 60, height: 6 }}>
+                          <div className="progress-fill" style={{ width: `${job.progress}%` }} />
+                        </div>
+                        <span className="cell-mono">{job.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="cell-date">{new Date(job.created_at).toLocaleString('th-TH')}</td>
                     <td>
                       {job.status === 'failed' && (
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleRetry(job.id)}>ลองใหม่</button>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleRetry(job.id)}>
+                          <FaRedo /> ลองใหม่
+                        </button>
                       )}
                     </td>
                   </tr>

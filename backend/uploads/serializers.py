@@ -40,3 +40,4 @@ class UploadCreateSerializer(serializers.Serializer):
     tags = serializers.CharField(required=False, default="")
     privacy = serializers.ChoiceField(choices=UploadJob.PRIVACY_CHOICES, default="private")
     scheduled_time = serializers.DateTimeField(required=False, allow_null=True)
+    file_path = serializers.CharField(required=False, allow_blank=True, default="")

@@ -2,6 +2,17 @@ import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 import { destinationAPI, oauthAPI, facebookAPI } from '../api/client'
 import DestinationForm from '../components/DestinationForm'
+import { FaYoutube, FaFacebook, FaPlus, FaPlug, FaPencilAlt, FaBan } from 'react-icons/fa'
+
+const PlatformIcon = ({ platform }) => {
+  if (platform === 'youtube') {
+    return <span className="platform-icon platform-youtube"><FaYoutube /></span>
+  }
+  if (platform === 'facebook') {
+    return <span className="platform-icon platform-facebook"><FaFacebook /></span>
+  }
+  return <span className="platform-icon" style={{ background: 'var(--surface-2)' }}>?</span>
+}
 
 export default function SettingsPage() {
   const [destinations, setDestinations] = useState([])
@@ -88,18 +99,21 @@ export default function SettingsPage() {
     <div>
       <div className="page-head">
         <h2 className="page-title">จัดการตั้งค่าช่องทาง</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn btn-ghost" onClick={handleConnect} disabled={connecting}>
-            {connecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
+            <FaYoutube /> {connecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ YouTube'}
           </button>
           <button className="btn btn-ghost" onClick={handleFbConnect} disabled={fbBusy}>
-            {fbBusy ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ Facebook'}
+            <FaFacebook /> {fbBusy ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อ Facebook'}
           </button>
-          <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>เพิ่ม</button>
+          <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>
+            <FaPlus /> เพิ่ม
+          </button>
         </div>
       </div>
       {destinations.length === 0 ? (
         <div className="card empty">
+          <span className="empty-icon">🔌</span>
           <p className="empty-title">ยังไม่มีช่องทางที่เชื่อมต่อ</p>
           <p className="empty-text">เพิ่มช่อง YouTube หรือ Facebook เพื่อเริ่มอัปโหลด</p>
         </div>
@@ -120,21 +134,32 @@ export default function SettingsPage() {
             <tbody>
               {destinations.map((d) => (
                 <tr key={d.id}>
-                  <td>{d.platform}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <PlatformIcon platform={d.platform} />
+                      <span style={{ fontWeight: 500 }}>{d.platform}</span>
+                    </div>
+                  </td>
                   <td className="cell-title">{d.name}</td>
-                  <td className="cell-mono">{String(d.access_token).slice(0, 20)}...</td>
-                  <td className="cell-muted"
+                  <td className="cell-mono cell-truncate" style={{ maxWidth: 180 }}>
+                    {String(d.access_token).slice(0, 20)}...
+                  </td>
+                  <td className="cell-date"
                       title={!d.token_expires_at && d.data_access_expires_at ? 'วันหมดอายุการเข้าถึงข้อมูล (data access)' : undefined}>
                     {d.token_expires_at ? new Date(d.token_expires_at).toLocaleString('th-TH')
                       : d.data_access_expires_at
                         ? `${new Date(d.data_access_expires_at).toLocaleString('th-TH')} (data access)`
                         : 'ไม่มีวันหมดอายุ'}
                   </td>
-                  <td className="cell-muted">{new Date(d.updated_at).toLocaleString('th-TH')}</td>
-                  <td className="cell-muted">{new Date(d.created_at).toLocaleString('th-TH')}</td>
+                  <td className="cell-date">{new Date(d.updated_at).toLocaleString('th-TH')}</td>
+                  <td className="cell-date">{new Date(d.created_at).toLocaleString('th-TH')}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(d); setShowForm(true) }} style={{ marginRight: 8 }}>แก้ไข</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(d.id)}>ปิดใช้งาน</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(d); setShowForm(true) }} style={{ marginRight: 8 }}>
+                      <FaPencilAlt /> แก้ไข
+                    </button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(d.id)}>
+                      <FaBan /> ปิดใช้งาน
+                    </button>
                   </td>
                 </tr>
               ))}
