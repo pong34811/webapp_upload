@@ -74,13 +74,6 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Frontend build output (served in production)
-FRONTEND_BUILD_DIR = BASE_DIR.parent / "frontend" / "dist"
-if FRONTEND_BUILD_DIR.exists():
-    STATICFILES_DIRS = [FRONTEND_BUILD_DIR]
-else:
-    STATICFILES_DIRS = []
-
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
