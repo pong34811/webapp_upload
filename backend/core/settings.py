@@ -77,8 +77,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # Frontend build output (served in production)
 FRONTEND_BUILD_DIR = BASE_DIR.parent / "frontend" / "dist"
 if FRONTEND_BUILD_DIR.exists():
-    TEMPLATES[0]["DIRS"] = [FRONTEND_BUILD_DIR]
-    STATICFILES_DIRS = [FRONTEND_BUILD_DIR / "assets"]
+    STATICFILES_DIRS = [FRONTEND_BUILD_DIR]
 else:
     STATICFILES_DIRS = []
 
