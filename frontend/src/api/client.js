@@ -73,4 +73,30 @@ export const templateAPI = {
   remove: (id) => api.delete(`/templates/${id}/`),
 }
 
+export const importAPI = {
+  sheets: (formData) =>
+    api.post('/import/sheets/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  sheetsByPath: (filePath) => {
+    const fd = new FormData()
+    fd.append('file_path', filePath)
+    return api.post('/import/sheets/', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  preview: (formData) =>
+    api.post('/import/preview/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  previewByPath: (filePath, sheetName) => {
+    const fd = new FormData()
+    fd.append('file_path', filePath)
+    fd.append('sheet_name', sheetName)
+    return api.post('/import/preview/', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+}
+
 export default api

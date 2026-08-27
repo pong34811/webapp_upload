@@ -15,5 +15,7 @@ urlpatterns = [
     path("oauth/youtube/callback/", views.oauth_youtube_callback, name="oauth_callback"),
     path("oauth/facebook/auth-url/", views.facebook_auth_url, name="oauth_fb_auth_url"),
     path("oauth/facebook/extend/", views.facebook_extend_token, name="oauth_fb_extend"),
+    path("import/sheets/", views.import_excel_sheets, name="import_excel_sheets"),
+    path("import/preview/", views.import_excel_preview, name="import_excel_preview"),
     path("", include(router.urls)),
 ]
